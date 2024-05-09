@@ -177,12 +177,12 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
     # Parameters
     t0 = time.time()
     # t_curr = t0
-    # combination_length = len(erdos_possible_combinations)
+    combination_length = len(erdos_possible_combinations)
 
     # Create a new HDF5 file
     with h5py.File(hdf5_file, 'w') as file:
         for i, param_set in enumerate(erdos_possible_combinations):
-            # print(f"Rank: {MPI.COMM_WORLD.Get_rank()}, combination: {i} / {combination_length}")
+            print(f"Rank: {MPI.COMM_WORLD.Get_rank()}, combination: {i} / {combination_length}")
 
             # Check time and break if out of time
             t1 = time.time()
@@ -222,14 +222,13 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
 
                 # Run the connected network
                 A_connected, num_edges = rc.erdos(n, erdos_c)
+                A_connected = A_connected * rho / np.max(np.abs(np.linalg.eigvals(A_connected.todense())))
                 res = rc.ResComp(A_connected, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
-                res.scale_spect_rad()
                 res.train(t_train, U_train)
 
                 # t_curr = time_comp(t_curr, f"Train Connected")
 
                 # Calculate Consistency Metric
-                # r0 = np.random.multivariate_normal(np.ones(n), np.eye(n)*eps)
                 r0 = res.initial_condition(U_train[0])
                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
                 states = res.internal_state_response(t_train, U_train, r0)
@@ -259,8 +258,8 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
 
                 # Run the thinned network
                 A_thinned = remove_edges(A_connected, int(p_thin * num_edges)).todense() # Convert this back to a digraph thingy
+                A_thinned = A_thinned * rho / np.max(np.abs(np.linalg.eigvals(A_thinned)))
                 res = rc.ResComp(A_thinned, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
-                res.scale_spect_rad()
                 res.train(t_train, U_train)
 
                 # t_curr = time_comp(t_curr, f"Train Thinned")
@@ -277,7 +276,6 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
                 # Forecast and compute the vpt along with diversity metrics
                 U_pred, pred_states = res.predict(t_test, r0=r0, return_states=True)
                 error = np.linalg.norm(U_test - U_pred, axis=1)
-                # vpt = rc.valid_prediction_index(error, tol=tol)
                 vpt = wa_vptime(t_test, U_test, U_pred, vpt_tol=tol)
                 divs = div_metric_tests(pred_states, T=batchsize, n=n)
 
@@ -292,7 +290,6 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
                 consistency_correlation_thinned.append(consistency_correlation)
 
                 # t_curr = time_comp(t_curr, f"Store results thinned")
-                print()
 
             # Store datasets
             group.create_dataset('div_old_thinned', data=div_old_thinned)
@@ -318,8 +315,7 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
             group.attrs['mean_err_connected'] = np.mean(err_connected)
             group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
             group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected)
-            # t_curr = time_comp(t_curr, f"Store means")
-
+    
 
 
 """
@@ -330,7 +326,7 @@ if __name__ == "__main__":
     erdos_possible_combinations = gridsearch_dict_setup()
     c_list = [.5,1,2,3,4]
 
-    # rescomp_parallel_gridsearch_h5(erdos_possible_combinations, iterations=10, hdf5_file=f'results/erdos_results_0.h5', erdos_c=c_list[0])
+    # rescomp_parallel_gridsearch_h5(erdos_possible_combinations, iterations=10, hdf5_file=f'test_erdos_results_0.h5', erdos_c=c_list[0])
 
     # Setup the parallelization
     SIZE = MPI.COMM_WORLD.Get_size()
