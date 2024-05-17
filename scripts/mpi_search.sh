@@ -1,11 +1,10 @@
 #!/bin/bash --login
 
-#SBATCH --time=24:00:00   # walltime
-#SBATCH --ntasks=5   # number of processor cores (i.e. tasks)
-#SBATCH --nodes=1   # number of nodes
-#SBATCH --mem-per-cpu=8192M   # memory per CPU core
+#SBATCH --time=09:00:00   # walltime
+#SBATCH --ntasks=171   # number of processor cores (i.e. tasks)
+#SBATCH --mem-per-cpu=1024M   # memory per CPU core
 #SBATCH -J "Reservoir_Gridsearch"   # job name
-#SBATCH --output=../results/mpi_gridsearch_test.txt
+#SBATCH --output=./results/mpi_gridsearch_test.txt
 #SBATCH --mail-user=dseyfr99@gmail.com   # email address
 #SBATCH --mail-type=BEGIN
 #SBATCH --mail-type=END
@@ -17,8 +16,8 @@ export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-cd /home/seyfdall/compute/network_theory
+cd /home/seyfdall/compute/network_theory/thinned_rescomp
 mamba activate reservoir
 # module load mpi/openmpi-1.10.7_gnu4.8.5
 export MPICC=$(which mpicc)
-mpirun -np 5 python3 rescomp_gridsearch.py
+mpirun -np 171 python3 rescomp_gridsearch.py

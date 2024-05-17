@@ -7,6 +7,8 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 from scipy import integrate, sparse
 from scipy.stats import pearsonr
+from scipy.sparse.linalg import eigs, ArpackNoConvergence
+from scipy.sparse import coo_matrix
 import math 
 import networkx as nx
 import itertools
@@ -19,6 +21,8 @@ np.random.seed(1)
 from math import comb
 import h5py
 from mpi4py import MPI
+import traceback
+import logging
 
 
 """
@@ -42,8 +46,9 @@ def nrmse(true, pred):
         Returns:
             err (ndarray): Error at each time value. 1D array with m entries
         """
-        sig = np.std(true, axis=0)
-        err = np.linalg.norm((true-pred) / sig, axis=1, ord=2)
+        # sig = np.std(true, axis=0)
+        # err = np.linalg.norm((true-pred) / sig, axis=1, ord=2)
+        err = np.linalg.norm((true-pred), axis=1, ord=2) # Just regular 2-norm
         return err
 
 def valid_prediction_index(err, tol):
@@ -53,7 +58,7 @@ def valid_prediction_index(err, tol):
         return np.argmax(mask)
     return len(err)
 
-def wa_vptime(ts, Uts, pre, vpt_tol=5.):
+def vpt_time(ts, Uts, pre, vpt_tol=5.):
     """
     Valid prediction time for a specific instance.
     """
@@ -78,8 +83,9 @@ def div_metric_tests(preds, T, n):
         for j in range(n):
             div += np.sum(np.abs(np.abs(preds[:T, i]) - np.abs(preds[:T, j])))
             old_div += np.sum(np.abs(res_deriv[:T, i] - res_deriv[:T, j]))
-    div = div / (T*comb(n,2))
-    old_div = old_div / (T*comb(n,2))
+    denom = T*comb(n,2)
+    div = div / denom
+    old_div = old_div / denom
 
     return div, old_div
 
@@ -155,6 +161,36 @@ def gridsearch_dict_setup():
 
     return erdos_possible_combinations
 
+
+def gridsearch_uniform_dict_setup():
+    # Topological Parameters
+    # ns = [500, 1500, 2500]
+    ns = [500]
+    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
+    # p_thins = [0.1, 0.5]
+
+    # Model Specific Parameters
+    # erdos_renyi_c = [.5,1,2,3,4]
+    erdos_renyi_c = [4]
+    # random_digraph_c = [.5,1,2,3,4]
+    # random_geometric_c = [.5,1,2,3,4]
+    # barabasi_albert_m = [1,2]
+    # watts_strogatz_k = [2,4]
+    # watt_strogatz_q = [.01,.05,.1]
+
+    # Reservoir Computing Parameters
+    gammas = [0.1,0.5,1,2,5,10,25,50]
+    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
+    # rhos = [5.0, 10.0]
+    sigmas = [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10]
+    alphas = [1e-8,1e-6,1e-4,1e-2,1]
+
+    erdos_possible_combinations = list(itertools.product(ns, erdos_renyi_c, gammas, sigmas, alphas))
+    # digraph_possible_combinations = list(itertools.product(ns, p_thins, random_digraph_c, gammas, rhos, sigmas, alphas))
+    # geometric_possible_combinations = list(itertools.product(ns, p_thins, random_geometric_c, gammas, rhos, sigmas, alphas))
+    # barabasi_possible_combinations = list(itertools.product(ns, p_thins, barabasi_albert_m, gammas, rhos, sigmas, alphas))
+    # strogatz_possible_combinations = list(itertools.product(ns, p_thins, watts_strogatz_k, watt_strogatz_q, gammas, rhos, sigmas, alphas))
+    return rhos, p_thins, erdos_possible_combinations
 
 
 """
@@ -240,7 +276,7 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
                 # Forecast and compute the vpt along with diversity metrics
                 U_pred, pred_states = res.predict(t_test, r0=r0, return_states=True)
                 error = np.linalg.norm(U_test - U_pred, axis=1)
-                vpt = wa_vptime(t_test, U_test, U_pred, vpt_tol=tol)
+                vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
                 divs = div_metric_tests(pred_states, T=batchsize, n=n)
 
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
@@ -276,7 +312,7 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
                 # Forecast and compute the vpt along with diversity metrics
                 U_pred, pred_states = res.predict(t_test, r0=r0, return_states=True)
                 error = np.linalg.norm(U_test - U_pred, axis=1)
-                vpt = wa_vptime(t_test, U_test, U_pred, vpt_tol=tol)
+                vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
                 divs = div_metric_tests(pred_states, T=batchsize, n=n)
 
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
@@ -315,7 +351,188 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
             group.attrs['mean_err_connected'] = np.mean(err_connected)
             group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
             group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected)
-    
+
+
+def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='lorenz', draw_count=100, tf=31400, hdf5_file="results/erdos_results.h5", rho=0.1, p_thin=0.0):
+    """ Run the gridsearch over possible combinations
+    """
+
+    # Train Test Split the system
+    duration = 55
+    dt = 0.01
+    trainper = 0.72727273
+    batchsize = int(duration / dt * trainper)
+    t_train, U_train, t_test, U_test = rc.train_test_orbit(system, duration=duration, dt=dt, trainper=trainper)
+    eps = 1e-5
+    tol = 5.
+
+    # Parameters
+    t0 = time.time()
+    # t_curr = t0
+    # combination_length = len(erdos_possible_combinations)
+
+    # Create a new HDF5 file
+    with h5py.File(hdf5_file, 'w') as file:
+        for i in range(draw_count):
+            param_set_index = np.random.choice(len(erdos_possible_combinations))
+            param_set = erdos_possible_combinations[param_set_index]
+            # print(f"Rank: {MPI.COMM_WORLD.Get_rank()}, combination: {i} / {draw_count}")
+
+            # Check time and break if out of time
+            t1 = time.time()
+            if t1 - t0 > tf:
+                print("Break in Combo")
+                return
+
+            # Setup initial conditions
+            n, erdos_c, gamma, sigma, alpha = param_set
+
+            # t_curr = time_comp(t_curr, "Create Group")
+            group = file.create_group(f"param_set_{i}")
+            group.attrs['n'] = n
+            group.attrs['p_thin'] = p_thin
+            group.attrs['erdos_c'] = erdos_c
+            group.attrs['gamma'] = gamma
+            group.attrs['rho'] = rho
+            group.attrs['sigma'] = sigma
+            group.attrs['alpha'] = alpha
+
+            div_old_thinned = [] 
+            div_new_thinned = [] 
+            div_old_connected = [] 
+            div_new_connected = [] 
+            vpt_thinned = []
+            vpt_connected = []
+            pred_thinned = []
+            pred_connected = []
+            err_thinned = []
+            err_connected = []
+            consistency_correlation_thinned = []
+            consistency_correlation_connected = []
+
+                
+            try:
+                # Generate connected and thinned networks
+                A_connected, num_edges = rc.erdos(n, erdos_c)
+                A_connected = A_connected * rho / np.max(np.abs(eigs(A_connected.astype(float), k=1)[0]))
+                A_thinned = remove_edges(A_connected, int(p_thin * num_edges)) # Convert this back to a digraph thingy
+                A_thinned = A_thinned * rho / np.max(np.abs(eigs(A_thinned.astype(float), k=1)[0]))
+
+                # Run the connected network
+                res_connected = rc.ResComp(A_connected, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+                res_connected.train(t_train, U_train)
+
+                # Run the thinned network
+                res_thinned = rc.ResComp(A_thinned, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+                res_thinned.train(t_train, U_train)
+
+
+
+                # t_curr = time_comp(t_curr, f"Train Connected")
+
+                # Calculate Consistency Metric
+                r0 = res_connected.initial_condition(U_train[0])
+                r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
+                states = res_connected.internal_state_response(t_train, U_train, r0)
+                states_perturbed = res_connected.internal_state_response(t_train, U_train, r0_perturbed)
+                consistency_correlation = pearson_consistency_metric(states, states_perturbed)
+
+                # t_curr = time_comp(t_curr, f"States and Consistency Connected")
+
+                # Forecast and compute the vpt along with diversity metrics
+                U_pred, pred_states = res_connected.predict(t_test, r0=r0, return_states=True)
+                error = np.linalg.norm(U_test - U_pred, axis=1)
+                vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
+                divs = div_metric_tests(pred_states, T=batchsize, n=n)
+
+                # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
+
+                # Store results
+                div_new_connected.append(divs[0])
+                div_old_connected.append(divs[1])
+                pred_connected.append(U_pred)
+                err_connected.append(error)
+                vpt_connected.append(vpt)
+                consistency_correlation_connected.append(consistency_correlation)
+
+                # t_curr = time_comp(t_curr, f"Store results connected")
+
+
+
+                # t_curr = time_comp(t_curr, f"Train Thinned")
+
+                # Calculate Consistency Metric
+                r0 = res_thinned.initial_condition(U_train[0])
+                r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
+                states = res_thinned.internal_state_response(t_train, U_train, r0)
+                states_perturbed = res_thinned.internal_state_response(t_train, U_train, r0_perturbed)
+                consistency_correlation = pearson_consistency_metric(states, states_perturbed)
+
+                # t_curr = time_comp(t_curr, f"States and Consistency Thinned")
+
+                # Forecast and compute the vpt along with diversity metrics
+                U_pred, pred_states = res_thinned.predict(t_test, r0=r0, return_states=True)
+                error = np.linalg.norm(U_test - U_pred, axis=1)
+                vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
+                divs = div_metric_tests(pred_states, T=batchsize, n=n)
+
+                # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
+
+                # Store results
+                div_new_thinned.append(divs[0])
+                div_old_thinned.append(divs[1])
+                pred_thinned.append(U_pred)
+                err_thinned.append(error)
+                vpt_thinned.append(vpt)
+                consistency_correlation_thinned.append(consistency_correlation)
+
+                # t_curr = time_comp(t_curr, f"Store results thinned")
+
+            except ArpackNoConvergence: # Occasionally sparse linalg eigs isn't able to converge
+                i = i-1
+                print("ArpackNoConvergence Error Caught")
+                continue
+            except OverflowError: # Solving for W_out hits overflow errors with high spectral radius and high p_thin
+                i = i-1
+                print("Overflow Error Caught")
+                continue
+            except Exception as e:
+                i = i-1
+                print("General Error")
+                logging.error(traceback.format_exc())
+                continue
+                    
+
+            # Store datasets
+            group.create_dataset('div_old_thinned', data=div_old_thinned)
+            group.create_dataset('div_new_thinned', data=div_new_thinned)
+            group.create_dataset('div_old_connected', data=div_old_connected)
+            group.create_dataset('div_new_connected', data=div_new_connected)
+            group.create_dataset('vpt_thinned', data=vpt_thinned)
+            group.create_dataset('vpt_connected', data=vpt_connected)
+            group.create_dataset('pred_thinned', data=pred_thinned)
+            group.create_dataset('pred_connected', data=pred_connected)
+            group.create_dataset('err_thinned', data=err_thinned)
+            group.create_dataset('err_connected', data=err_connected)
+            group.create_dataset('consistency_thinned', data=consistency_correlation_thinned)
+            group.create_dataset('consistency_connected', data=consistency_correlation_connected)
+
+            # t_curr = time_comp(t_curr, f"Store datasets")
+
+
+            # Store Means
+            group.attrs['div_old_thinned'] = np.mean(div_old_thinned)
+            group.attrs['div_new_thinned'] = np.mean(div_new_thinned)
+            group.attrs['div_old_connected'] = np.mean(div_old_connected)
+            group.attrs['div_new_connected'] = np.mean(div_new_connected)
+            group.attrs['mean_vpt_thinned'] = np.mean(vpt_thinned)
+            group.attrs['mean_vpt_connected'] = np.mean(vpt_connected)
+            group.attrs['mean_pred_thinned'] = np.mean(pred_thinned)
+            group.attrs['mean_pred_connected'] = np.mean(pred_connected)
+            group.attrs['mean_err_thinned'] = np.mean(err_thinned)
+            group.attrs['mean_err_connected'] = np.mean(err_connected)
+            group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
+            group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected) 
 
 
 """
@@ -323,18 +540,46 @@ Main Method
 """
 
 if __name__ == "__main__":
-    erdos_possible_combinations = gridsearch_dict_setup()
-    c_list = [.5,1,2,3,4]
+    rhos, p_thins, erdos_possible_combinations = gridsearch_uniform_dict_setup()
 
-    # rescomp_parallel_gridsearch_h5(erdos_possible_combinations, iterations=10, hdf5_file=f'test_erdos_results_0.h5', erdos_c=c_list[0])
+    n, m = len(rhos), len(p_thins)
+
+    rho_p_thin_prod = list(itertools.product(rhos, p_thins))
 
     # Setup the parallelization
     SIZE = MPI.COMM_WORLD.Get_size()
-    if SIZE != 5:
-        print(f"Number of processes expected: 5, received: {SIZE}")
+    if SIZE != n*m:
+        print(f"Number of processes expected: {n*m}, received: {SIZE}")
         exit()
     
     # Split the Erdos_c exploration according to RANK
     RANK = MPI.COMM_WORLD.Get_rank()
 
-    rescomp_parallel_gridsearch_h5(erdos_possible_combinations, iterations=10, hdf5_file=f'results/erdos_results_{RANK}.h5', erdos_c=c_list[RANK])
+    rho, p_thin = rho_p_thin_prod[RANK]
+    results_path = '/home/seyfdall/compute/network_theory/thinned_rescomp/'
+    rescomp_parallel_gridsearch_uniform_h5(
+        erdos_possible_combinations, 
+        draw_count=1, 
+        hdf5_file=f'{results_path}results/erdos_results_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5', 
+        rho=rho, 
+        p_thin=p_thin
+    )
+
+
+
+# if __name__ == "__main__":
+#     erdos_possible_combinations = gridsearch_dict_setup()
+#     c_list = [.5,1,2,3,4]
+
+#     # rescomp_parallel_gridsearch_h5(erdos_possible_combinations, iterations=10, hdf5_file=f'test_erdos_results_0.h5', erdos_c=c_list[0])
+
+#     # Setup the parallelization
+#     SIZE = MPI.COMM_WORLD.Get_size()
+#     if SIZE != 5:
+#         print(f"Number of processes expected: 5, received: {SIZE}")
+#         exit()
+    
+#     # Split the Erdos_c exploration according to RANK
+#     RANK = MPI.COMM_WORLD.Get_rank()
+
+#     rescomp_parallel_gridsearch_h5(erdos_possible_combinations, iterations=10, hdf5_file=f'results/erdos_results_{RANK}.h5', erdos_c=c_list[RANK])
