@@ -77,17 +77,17 @@ def div_metric_tests(preds, T, n):
     res_deriv = np.gradient(preds[:T], axis=0)
 
     # Run the metric for the old and new diversity scores
-    div = 0
-    old_div = 0
+    div_pos = 0
+    div_der = 0
     for i in range(n):
         for j in range(n):
-            div += np.sum(np.abs(np.abs(preds[:T, i]) - np.abs(preds[:T, j])))
-            old_div += np.sum(np.abs(res_deriv[:T, i] - res_deriv[:T, j]))
+            div_pos += np.sum(np.abs(np.abs(preds[:T, i]) - np.abs(preds[:T, j])))
+            div_der += np.sum(np.abs(res_deriv[:T, i] - res_deriv[:T, j]))
     denom = T*comb(n,2)
-    div = div / denom
-    old_div = old_div / denom
+    div_pos = div_pos / denom
+    div_der = div_der / denom
 
-    return div, old_div
+    return div_pos, div_der
 
 def remove_edges(A,n_edges):
     """ Randomly removes 'n_edges' edges from a sparse matrix 'A'
@@ -124,7 +124,8 @@ def pearson_consistency_metric(states, states_perturbed):
         gammas = np.zeros(n)
         for i in range(n):
             gammas[i] = pearsonr(states[:,i], states_perturbed[:,i])[0]
-        aggregated_pearson_correlation_coeff = np.mean(gammas)
+        # pearsonr is not defined for constant state vectors so nan will be returned - remove these from the array
+        aggregated_pearson_correlation_coeff = np.mean(gammas[np.isfinite(gammas)])
         return aggregated_pearson_correlation_coeff
 
 
@@ -239,10 +240,10 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
             group.attrs['sigma'] = sigma
             group.attrs['alpha'] = alpha
 
-            div_old_thinned = [] 
-            div_new_thinned = [] 
-            div_old_connected = [] 
-            div_new_connected = [] 
+            div_der_thinned = [] 
+            div_pos_thinned = [] 
+            div_der_connected = [] 
+            div_pos_connected = [] 
             vpt_thinned = []
             vpt_connected = []
             pred_thinned = []
@@ -282,8 +283,8 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
 
                 # Store results
-                div_new_connected.append(divs[0])
-                div_old_connected.append(divs[1])
+                div_pos_connected.append(divs[0])
+                div_der_connected.append(divs[1])
                 pred_connected.append(U_pred)
                 err_connected.append(error)
                 vpt_connected.append(vpt)
@@ -318,8 +319,8 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
 
                 # Store results
-                div_new_thinned.append(divs[0])
-                div_old_thinned.append(divs[1])
+                div_pos_thinned.append(divs[0])
+                div_der_thinned.append(divs[1])
                 pred_thinned.append(U_pred)
                 err_thinned.append(error)
                 vpt_thinned.append(vpt)
@@ -328,10 +329,10 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
                 # t_curr = time_comp(t_curr, f"Store results thinned")
 
             # Store datasets
-            group.create_dataset('div_old_thinned', data=div_old_thinned)
-            group.create_dataset('div_new_thinned', data=div_new_thinned)
-            group.create_dataset('div_old_connected', data=div_old_connected)
-            group.create_dataset('div_new_connected', data=div_new_connected)
+            group.create_dataset('div_der_thinned', data=div_der_thinned)
+            group.create_dataset('div_pos_thinned', data=div_pos_thinned)
+            group.create_dataset('div_der_connected', data=div_der_connected)
+            group.create_dataset('div_pos_connected', data=div_pos_connected)
             group.create_dataset('vpt_thinned', data=vpt_thinned)
             group.create_dataset('vpt_connected', data=vpt_connected)
             group.create_dataset('pred_thinned', data=pred_thinned)
@@ -353,7 +354,7 @@ def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz',
             group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected)
 
 
-def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='lorenz', draw_count=100, tf=31400, hdf5_file="results/erdos_results.h5", rho=0.1, p_thin=0.0):
+def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='lorenz', draw_count=100, tf=85000, hdf5_file="results/erdos_results.h5", rho=0.1, p_thin=0.0):
     """ Run the gridsearch over possible combinations
     """
 
@@ -397,10 +398,10 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
             group.attrs['sigma'] = sigma
             group.attrs['alpha'] = alpha
 
-            div_old_thinned = [] 
-            div_new_thinned = [] 
-            div_old_connected = [] 
-            div_new_connected = [] 
+            div_der_thinned = [] 
+            div_pos_thinned = [] 
+            div_der_connected = [] 
+            div_pos_connected = [] 
             vpt_thinned = []
             vpt_connected = []
             pred_thinned = []
@@ -413,17 +414,17 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
                 
             try:
                 # Generate connected and thinned networks
-                A_connected, num_edges = rc.erdos(n, erdos_c)
-                A_connected = A_connected * rho / np.max(np.abs(eigs(A_connected.astype(float), k=1)[0]))
-                A_thinned = remove_edges(A_connected, int(p_thin * num_edges)) # Convert this back to a digraph thingy
-                A_thinned = A_thinned * rho / np.max(np.abs(eigs(A_thinned.astype(float), k=1)[0]))
+                A_connected = nx.erdos_renyi_graph(n,erdos_c/(n-1),directed=True)
+                A_connected = sparse.dok_matrix(nx.adjacency_matrix(A_connected).T)
+                A_thinned = nx.erdos_renyi_graph(n,erdos_c*(1-p_thin)/(n-1),directed=True)
+                A_thinned = sparse.dok_matrix(nx.adjacency_matrix(A_thinned).T)
 
                 # Run the connected network
-                res_connected = rc.ResComp(A_connected, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+                res_connected = rc.ResComp(A_connected.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
                 res_connected.train(t_train, U_train)
 
                 # Run the thinned network
-                res_thinned = rc.ResComp(A_thinned, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+                res_thinned = rc.ResComp(A_thinned.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
                 res_thinned.train(t_train, U_train)
 
 
@@ -431,7 +432,7 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
                 # t_curr = time_comp(t_curr, f"Train Connected")
 
                 # Calculate Consistency Metric
-                r0 = res_connected.initial_condition(U_train[0])
+                r0 = res_connected.r0
                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
                 states = res_connected.internal_state_response(t_train, U_train, r0)
                 states_perturbed = res_connected.internal_state_response(t_train, U_train, r0_perturbed)
@@ -448,8 +449,8 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
 
                 # Store results
-                div_new_connected.append(divs[0])
-                div_old_connected.append(divs[1])
+                div_pos_connected.append(divs[0])
+                div_der_connected.append(divs[1])
                 pred_connected.append(U_pred)
                 err_connected.append(error)
                 vpt_connected.append(vpt)
@@ -462,7 +463,7 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
                 # t_curr = time_comp(t_curr, f"Train Thinned")
 
                 # Calculate Consistency Metric
-                r0 = res_thinned.initial_condition(U_train[0])
+                r0 = res_thinned.r0
                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
                 states = res_thinned.internal_state_response(t_train, U_train, r0)
                 states_perturbed = res_thinned.internal_state_response(t_train, U_train, r0_perturbed)
@@ -479,8 +480,8 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
 
                 # Store results
-                div_new_thinned.append(divs[0])
-                div_old_thinned.append(divs[1])
+                div_pos_thinned.append(divs[0])
+                div_der_thinned.append(divs[1])
                 pred_thinned.append(U_pred)
                 err_thinned.append(error)
                 vpt_thinned.append(vpt)
@@ -490,24 +491,27 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
 
             except ArpackNoConvergence: # Occasionally sparse linalg eigs isn't able to converge
                 i = i-1
+                del file[f"param_set_{i}"]
                 print("ArpackNoConvergence Error Caught")
                 continue
             except OverflowError: # Solving for W_out hits overflow errors with high spectral radius and high p_thin
                 i = i-1
+                del file[f"param_set_{i}"]
                 print("Overflow Error Caught")
                 continue
             except Exception as e:
                 i = i-1
+                del file[f"param_set_{i}"]
                 print("General Error")
                 logging.error(traceback.format_exc())
                 continue
                     
 
             # Store datasets
-            group.create_dataset('div_old_thinned', data=div_old_thinned)
-            group.create_dataset('div_new_thinned', data=div_new_thinned)
-            group.create_dataset('div_old_connected', data=div_old_connected)
-            group.create_dataset('div_new_connected', data=div_new_connected)
+            group.create_dataset('div_der_thinned', data=div_der_thinned)
+            group.create_dataset('div_pos_thinned', data=div_pos_thinned)
+            group.create_dataset('div_der_connected', data=div_der_connected)
+            group.create_dataset('div_pos_connected', data=div_pos_connected)
             group.create_dataset('vpt_thinned', data=vpt_thinned)
             group.create_dataset('vpt_connected', data=vpt_connected)
             group.create_dataset('pred_thinned', data=pred_thinned)
@@ -521,10 +525,10 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
 
 
             # Store Means
-            group.attrs['div_old_thinned'] = np.mean(div_old_thinned)
-            group.attrs['div_new_thinned'] = np.mean(div_new_thinned)
-            group.attrs['div_old_connected'] = np.mean(div_old_connected)
-            group.attrs['div_new_connected'] = np.mean(div_new_connected)
+            group.attrs['div_der_thinned'] = np.mean(div_der_thinned)
+            group.attrs['div_pos_thinned'] = np.mean(div_pos_thinned)
+            group.attrs['div_der_connected'] = np.mean(div_der_connected)
+            group.attrs['div_pos_connected'] = np.mean(div_pos_connected)
             group.attrs['mean_vpt_thinned'] = np.mean(vpt_thinned)
             group.attrs['mean_vpt_connected'] = np.mean(vpt_connected)
             group.attrs['mean_pred_thinned'] = np.mean(pred_thinned)
@@ -533,6 +537,7 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
             group.attrs['mean_err_connected'] = np.mean(err_connected)
             group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
             group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected) 
+
 
 
 """
@@ -559,7 +564,7 @@ if __name__ == "__main__":
     results_path = '/home/seyfdall/compute/network_theory/thinned_rescomp/'
     rescomp_parallel_gridsearch_uniform_h5(
         erdos_possible_combinations, 
-        draw_count=1, 
+        draw_count=10000, 
         hdf5_file=f'{results_path}results/erdos_results_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5', 
         rho=rho, 
         p_thin=p_thin
