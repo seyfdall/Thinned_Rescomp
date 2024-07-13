@@ -211,7 +211,7 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
     """
 
     # GET TRAINING AND TESTING SIGNALS
-    t, U = rc.orbit('lorenz', duration=1000)
+    t, U = rc.orbit('lorenz', duration=50)
     u = CubicSpline(t, U)
     t_train = t[:4000]
     U_train = u(t[:4000])
@@ -248,6 +248,8 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
             group.attrs['rho'] = rho
             group.attrs['sigma'] = sigma
             group.attrs['alpha'] = alpha
+
+            # Debug times 
 
             div_der_thinned = [] 
             div_pos_thinned = [] 
