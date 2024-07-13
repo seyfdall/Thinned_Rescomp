@@ -172,7 +172,7 @@ def gridsearch_uniform_dict_setup():
 
     # Model Specific Parameters
     # erdos_renyi_c = [.5,1,2,3,4]
-    erdos_renyi_c = [4]
+    erdos_renyi_c = [0.5, 1, 2, 3, 4]
     # random_digraph_c = [.5,1,2,3,4]
     # random_geometric_c = [.5,1,2,3,4]
     # barabasi_albert_m = [1,2]
@@ -198,179 +198,371 @@ def gridsearch_uniform_dict_setup():
 Perform the Gridsearch
 """
 
-def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz', iterations=30, tf=85000, hdf5_file="results/erdos_results.h5", erdos_c=0.5):
+# def rescomp_parallel_gridsearch_h5(erdos_possible_combinations, system='lorenz', iterations=30, tf=85000, hdf5_file="results/erdos_results.h5", erdos_c=0.5):
+#     """ Run the gridsearch over possible combinations
+#     """
+
+#     # Train Test Split the system
+#     duration = 45
+#     dt = 0.01
+#     trainper = 0.88889
+#     batchsize = int(duration / dt * trainper)
+#     t_train, U_train, t_test, U_test = rc.train_test_orbit(system, duration=duration, dt=dt, trainper=trainper)
+#     eps = 1e-5
+#     tol = 5.
+
+#     # Parameters
+#     t0 = time.time()
+#     # t_curr = t0
+#     combination_length = len(erdos_possible_combinations)
+
+#     # Create a new HDF5 file
+#     with h5py.File(hdf5_file, 'w') as file:
+#         for i, param_set in enumerate(erdos_possible_combinations):
+#             print(f"Rank: {MPI.COMM_WORLD.Get_rank()}, combination: {i} / {combination_length}")
+
+#             # Check time and break if out of time
+#             t1 = time.time()
+#             if t1 - t0 > tf:
+#                 print("Break in Combo")
+#                 return
+
+#             # Setup initial conditions
+#             n, p_thin, gamma, rho, sigma, alpha = param_set
+
+#             # t_curr = time_comp(t_curr, "Create Group")
+#             group = file.create_group(f"param_set_{n}_{p_thin}_{erdos_c}_{gamma}_{rho}_{sigma}_{alpha}")
+#             group.attrs['n'] = n
+#             group.attrs['p_thin'] = p_thin
+#             group.attrs['erdos_c'] = erdos_c
+#             group.attrs['gamma'] = gamma
+#             group.attrs['rho'] = rho
+#             group.attrs['sigma'] = sigma
+#             group.attrs['alpha'] = alpha
+
+#             div_der_thinned = [] 
+#             div_pos_thinned = [] 
+#             div_der_connected = [] 
+#             div_pos_connected = [] 
+#             vpt_thinned = []
+#             vpt_connected = []
+#             pred_thinned = []
+#             pred_connected = []
+#             err_thinned = []
+#             err_connected = []
+#             consistency_correlation_thinned = []
+#             consistency_correlation_connected = []
+
+#             for iter in range(iterations):
+
+#                 # t_curr = time_comp(t_curr, f"Iteration: {iter}")
+
+#                 # Run the connected network
+#                 A_connected, num_edges = rc.erdos(n, erdos_c)
+#                 A_connected = A_connected * rho / np.max(np.abs(np.linalg.eigvals(A_connected.todense())))
+#                 res = rc.ResComp(A_connected, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+#                 res.train(t_train, U_train)
+
+#                 # t_curr = time_comp(t_curr, f"Train Connected")
+
+#                 # Calculate Consistency Metric
+#                 r0 = res.initial_condition(U_train[0])
+#                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
+#                 states = res.internal_state_response(t_train, U_train, r0)
+#                 states_perturbed = res.internal_state_response(t_train, U_train, r0_perturbed)
+#                 consistency_correlation = pearson_consistency_metric(states, states_perturbed)
+
+#                 # t_curr = time_comp(t_curr, f"States and Consistency Connected")
+
+#                 # Forecast and compute the vpt along with diversity metrics
+#                 U_pred, pred_states = res.predict(t_test, r0=r0, return_states=True)
+#                 error = np.linalg.norm(U_test - U_pred, axis=1)
+#                 vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
+#                 divs = div_metric_tests(pred_states, T=batchsize, n=n)
+
+#                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
+
+#                 # Store results
+#                 div_pos_connected.append(divs[0])
+#                 div_der_connected.append(divs[1])
+#                 pred_connected.append(U_pred)
+#                 err_connected.append(error)
+#                 vpt_connected.append(vpt)
+#                 consistency_correlation_connected.append(consistency_correlation)
+
+#                 # t_curr = time_comp(t_curr, f"Store results connected")
+
+
+#                 # Run the thinned network
+#                 A_thinned = remove_edges(A_connected, int(p_thin * num_edges)).todense() # Convert this back to a digraph thingy
+#                 A_thinned = A_thinned * rho / np.max(np.abs(np.linalg.eigvals(A_thinned)))
+#                 res = rc.ResComp(A_thinned, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+#                 res.train(t_train, U_train)
+
+#                 # t_curr = time_comp(t_curr, f"Train Thinned")
+
+#                 # Calculate Consistency Metric
+#                 r0 = res.initial_condition(U_train[0])
+#                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
+#                 states = res.internal_state_response(t_train, U_train, r0)
+#                 states_perturbed = res.internal_state_response(t_train, U_train, r0_perturbed)
+#                 consistency_correlation = pearson_consistency_metric(states, states_perturbed)
+
+#                 # t_curr = time_comp(t_curr, f"States and Consistency Thinned")
+
+#                 # Forecast and compute the vpt along with diversity metrics
+#                 U_pred, pred_states = res.predict(t_test, r0=r0, return_states=True)
+#                 error = np.linalg.norm(U_test - U_pred, axis=1)
+#                 vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
+#                 divs = div_metric_tests(pred_states, T=batchsize, n=n)
+
+#                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
+
+#                 # Store results
+#                 div_pos_thinned.append(divs[0])
+#                 div_der_thinned.append(divs[1])
+#                 pred_thinned.append(U_pred)
+#                 err_thinned.append(error)
+#                 vpt_thinned.append(vpt)
+#                 consistency_correlation_thinned.append(consistency_correlation)
+
+#                 # t_curr = time_comp(t_curr, f"Store results thinned")
+
+#             # Store datasets
+#             group.create_dataset('div_der_thinned', data=div_der_thinned)
+#             group.create_dataset('div_pos_thinned', data=div_pos_thinned)
+#             group.create_dataset('div_der_connected', data=div_der_connected)
+#             group.create_dataset('div_pos_connected', data=div_pos_connected)
+#             group.create_dataset('vpt_thinned', data=vpt_thinned)
+#             group.create_dataset('vpt_connected', data=vpt_connected)
+#             group.create_dataset('pred_thinned', data=pred_thinned)
+#             group.create_dataset('pred_connected', data=pred_connected)
+#             group.create_dataset('err_thinned', data=err_thinned)
+#             group.create_dataset('err_connected', data=err_connected)
+#             group.create_dataset('consistency_thinned', data=consistency_correlation_thinned)
+#             group.create_dataset('consistency_connected', data=consistency_correlation_connected)
+
+#             # t_curr = time_comp(t_curr, f"Store datasets")
+
+
+#             # Store Means
+#             group.attrs['mean_pred_thinned'] = np.mean(pred_thinned)
+#             group.attrs['mean_pred_connected'] = np.mean(pred_connected)
+#             group.attrs['mean_err_thinned'] = np.mean(err_thinned)
+#             group.attrs['mean_err_connected'] = np.mean(err_connected)
+#             group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
+#             group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected)
+
+
+# def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='lorenz', draw_count=100, tf=85000, hdf5_file="results/erdos_results.h5", rho=0.1, p_thin=0.0):
+#     """ Run the gridsearch over possible combinations
+#     """
+
+#     # Train Test Split the system
+#     duration = 55
+#     dt = 0.01
+#     trainper = 0.72727273
+#     batchsize = int(duration / dt * trainper)
+#     t_train, U_train, t_test, U_test = rc.train_test_orbit(system, duration=duration, dt=dt, trainper=trainper)
+#     eps = 1e-5
+#     tol = 5.
+
+#     # Parameters
+#     t0 = time.time()
+#     # t_curr = t0
+#     # combination_length = len(erdos_possible_combinations)
+
+#     # Create a new HDF5 file
+#     with h5py.File(hdf5_file, 'w') as file:
+#         for i in range(draw_count):
+#             param_set_index = np.random.choice(len(erdos_possible_combinations))
+#             param_set = erdos_possible_combinations[param_set_index]
+#             # print(f"Rank: {MPI.COMM_WORLD.Get_rank()}, combination: {i} / {draw_count}")
+
+#             # Check time and break if out of time
+#             t1 = time.time()
+#             if t1 - t0 > tf:
+#                 print("Break in Combo")
+#                 return
+
+#             # Setup initial conditions
+#             n, erdos_c, gamma, sigma, alpha = param_set
+
+#             # t_curr = time_comp(t_curr, "Create Group")
+#             group = file.create_group(f"param_set_{i}")
+#             group.attrs['n'] = n
+#             group.attrs['p_thin'] = p_thin
+#             group.attrs['erdos_c'] = erdos_c
+#             group.attrs['gamma'] = gamma
+#             group.attrs['rho'] = rho
+#             group.attrs['sigma'] = sigma
+#             group.attrs['alpha'] = alpha
+
+#             div_der_thinned = [] 
+#             div_pos_thinned = [] 
+#             div_der_connected = [] 
+#             div_pos_connected = [] 
+#             vpt_thinned = []
+#             vpt_connected = []
+#             pred_thinned = []
+#             pred_connected = []
+#             err_thinned = []
+#             err_connected = []
+#             consistency_correlation_thinned = []
+#             consistency_correlation_connected = []
+
+                
+#             try:
+#                 # Generate connected and thinned networks
+#                 A_connected = nx.erdos_renyi_graph(n,erdos_c/(n-1),directed=True)
+#                 A_connected = sparse.dok_matrix(nx.adjacency_matrix(A_connected).T)
+#                 A_thinned = nx.erdos_renyi_graph(n,erdos_c*(1-p_thin)/(n-1),directed=True)
+#                 A_thinned = sparse.dok_matrix(nx.adjacency_matrix(A_thinned).T)
+
+#                 # Run the connected network
+#                 res_connected = rc.ResComp(A_connected.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+#                 res_connected.train(t_train, U_train)
+
+#                 # Run the thinned network
+#                 res_thinned = rc.ResComp(A_thinned.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+#                 res_thinned.train(t_train, U_train)
+
+
+
+#                 # t_curr = time_comp(t_curr, f"Train Connected")
+
+#                 # Calculate Consistency Metric
+#                 r0 = res_connected.r0
+#                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
+#                 states = res_connected.internal_state_response(t_train, U_train, r0)
+#                 states_perturbed = res_connected.internal_state_response(t_train, U_train, r0_perturbed)
+#                 consistency_correlation = pearson_consistency_metric(states, states_perturbed)
+
+#                 # t_curr = time_comp(t_curr, f"States and Consistency Connected")
+
+#                 # Forecast and compute the vpt along with diversity metrics
+#                 U_pred, pred_states = res_connected.predict(t_test, r0=r0, return_states=True)
+#                 error = np.linalg.norm(U_test - U_pred, axis=1)
+#                 vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
+#                 divs = div_metric_tests(pred_states, T=batchsize, n=n)
+
+#                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
+
+#                 # Store results
+#                 div_pos_connected.append(divs[0])
+#                 div_der_connected.append(divs[1])
+#                 pred_connected.append(U_pred)
+#                 err_connected.append(error)
+#                 vpt_connected.append(vpt)
+#                 consistency_correlation_connected.append(consistency_correlation)
+
+#                 # t_curr = time_comp(t_curr, f"Store results connected")
+
+
+
+#                 # t_curr = time_comp(t_curr, f"Train Thinned")
+
+#                 # Calculate Consistency Metric
+#                 r0 = res_thinned.r0
+#                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
+#                 states = res_thinned.internal_state_response(t_train, U_train, r0)
+#                 states_perturbed = res_thinned.internal_state_response(t_train, U_train, r0_perturbed)
+#                 consistency_correlation = pearson_consistency_metric(states, states_perturbed)
+
+#                 # t_curr = time_comp(t_curr, f"States and Consistency Thinned")
+
+#                 # Forecast and compute the vpt along with diversity metrics
+#                 U_pred, pred_states = res_thinned.predict(t_test, r0=r0, return_states=True)
+#                 error = np.linalg.norm(U_test - U_pred, axis=1)
+#                 vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
+#                 divs = div_metric_tests(pred_states, T=batchsize, n=n)
+
+#                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
+
+#                 # Store results
+#                 div_pos_thinned.append(divs[0])
+#                 div_der_thinned.append(divs[1])
+#                 pred_thinned.append(U_pred)
+#                 err_thinned.append(error)
+#                 vpt_thinned.append(vpt)
+#                 consistency_correlation_thinned.append(consistency_correlation)
+
+#                 # t_curr = time_comp(t_curr, f"Store results thinned")
+
+#             except ArpackNoConvergence: # Occasionally sparse linalg eigs isn't able to converge
+#                 i = i-1
+#                 del file[f"param_set_{i}"]
+#                 print("ArpackNoConvergence Error Caught")
+#                 continue
+#             except OverflowError: # Solving for W_out hits overflow errors with high spectral radius and high p_thin
+#                 i = i-1
+#                 del file[f"param_set_{i}"]
+#                 print("Overflow Error Caught")
+#                 continue
+#             except Exception as e:
+#                 i = i-1
+#                 del file[f"param_set_{i}"]
+#                 print("General Error")
+#                 logging.error(traceback.format_exc())
+#                 continue
+                    
+
+#             # Store datasets
+#             group.create_dataset('div_der_thinned', data=div_der_thinned)
+#             group.create_dataset('div_pos_thinned', data=div_pos_thinned)
+#             group.create_dataset('div_der_connected', data=div_der_connected)
+#             group.create_dataset('div_pos_connected', data=div_pos_connected)
+#             group.create_dataset('vpt_thinned', data=vpt_thinned)
+#             group.create_dataset('vpt_connected', data=vpt_connected)
+#             group.create_dataset('pred_thinned', data=pred_thinned)
+#             group.create_dataset('pred_connected', data=pred_connected)
+#             group.create_dataset('err_thinned', data=err_thinned)
+#             group.create_dataset('err_connected', data=err_connected)
+#             group.create_dataset('consistency_thinned', data=consistency_correlation_thinned)
+#             group.create_dataset('consistency_connected', data=consistency_correlation_connected)
+
+#             # t_curr = time_comp(t_curr, f"Store datasets")
+
+
+#             # Store Means
+#             group.attrs['div_der_thinned'] = np.mean(div_der_thinned)
+#             group.attrs['div_pos_thinned'] = np.mean(div_pos_thinned)
+#             group.attrs['div_der_connected'] = np.mean(div_der_connected)
+#             group.attrs['div_pos_connected'] = np.mean(div_pos_connected)
+#             group.attrs['mean_vpt_thinned'] = np.mean(vpt_thinned)
+#             group.attrs['mean_vpt_connected'] = np.mean(vpt_connected)
+#             group.attrs['mean_pred_thinned'] = np.mean(pred_thinned)
+#             group.attrs['mean_pred_connected'] = np.mean(pred_connected)
+#             group.attrs['mean_err_thinned'] = np.mean(err_thinned)
+#             group.attrs['mean_err_connected'] = np.mean(err_connected)
+#             group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
+#             group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected) 
+
+
+def rescomp_parallel_gridsearch_uniform_thinned_h5(
+        erdos_possible_combinations, 
+        system='lorenz', 
+        draw_count=100, 
+        tf=144000, 
+        hdf5_file="results/erdos_results.h5", 
+        rho=0.1, 
+        p_thin=0.0
+    ):
     """ Run the gridsearch over possible combinations
     """
 
-    # Train Test Split the system
-    duration = 45
-    dt = 0.01
-    trainper = 0.88889
-    batchsize = int(duration / dt * trainper)
-    t_train, U_train, t_test, U_test = rc.train_test_orbit(system, duration=duration, dt=dt, trainper=trainper)
+    # GET TRAINING AND TESTING SIGNALS
+    t, U = rc.orbit('lorenz', duration=1000)
+    u = CubicSpline(t, U)
+    t_train = t[:4000]
+    U_train = u(t[:4000])
+    t_test = t[4000:]
+    U_test = u(t[4000:])
     eps = 1e-5
     tol = 5.
 
     # Parameters
     t0 = time.time()
-    # t_curr = t0
-    combination_length = len(erdos_possible_combinations)
-
-    # Create a new HDF5 file
-    with h5py.File(hdf5_file, 'w') as file:
-        for i, param_set in enumerate(erdos_possible_combinations):
-            print(f"Rank: {MPI.COMM_WORLD.Get_rank()}, combination: {i} / {combination_length}")
-
-            # Check time and break if out of time
-            t1 = time.time()
-            if t1 - t0 > tf:
-                print("Break in Combo")
-                return
-
-            # Setup initial conditions
-            n, p_thin, gamma, rho, sigma, alpha = param_set
-
-            # t_curr = time_comp(t_curr, "Create Group")
-            group = file.create_group(f"param_set_{n}_{p_thin}_{erdos_c}_{gamma}_{rho}_{sigma}_{alpha}")
-            group.attrs['n'] = n
-            group.attrs['p_thin'] = p_thin
-            group.attrs['erdos_c'] = erdos_c
-            group.attrs['gamma'] = gamma
-            group.attrs['rho'] = rho
-            group.attrs['sigma'] = sigma
-            group.attrs['alpha'] = alpha
-
-            div_der_thinned = [] 
-            div_pos_thinned = [] 
-            div_der_connected = [] 
-            div_pos_connected = [] 
-            vpt_thinned = []
-            vpt_connected = []
-            pred_thinned = []
-            pred_connected = []
-            err_thinned = []
-            err_connected = []
-            consistency_correlation_thinned = []
-            consistency_correlation_connected = []
-
-            for iter in range(iterations):
-
-                # t_curr = time_comp(t_curr, f"Iteration: {iter}")
-
-                # Run the connected network
-                A_connected, num_edges = rc.erdos(n, erdos_c)
-                A_connected = A_connected * rho / np.max(np.abs(np.linalg.eigvals(A_connected.todense())))
-                res = rc.ResComp(A_connected, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
-                res.train(t_train, U_train)
-
-                # t_curr = time_comp(t_curr, f"Train Connected")
-
-                # Calculate Consistency Metric
-                r0 = res.initial_condition(U_train[0])
-                r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
-                states = res.internal_state_response(t_train, U_train, r0)
-                states_perturbed = res.internal_state_response(t_train, U_train, r0_perturbed)
-                consistency_correlation = pearson_consistency_metric(states, states_perturbed)
-
-                # t_curr = time_comp(t_curr, f"States and Consistency Connected")
-
-                # Forecast and compute the vpt along with diversity metrics
-                U_pred, pred_states = res.predict(t_test, r0=r0, return_states=True)
-                error = np.linalg.norm(U_test - U_pred, axis=1)
-                vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
-                divs = div_metric_tests(pred_states, T=batchsize, n=n)
-
-                # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
-
-                # Store results
-                div_pos_connected.append(divs[0])
-                div_der_connected.append(divs[1])
-                pred_connected.append(U_pred)
-                err_connected.append(error)
-                vpt_connected.append(vpt)
-                consistency_correlation_connected.append(consistency_correlation)
-
-                # t_curr = time_comp(t_curr, f"Store results connected")
-
-
-                # Run the thinned network
-                A_thinned = remove_edges(A_connected, int(p_thin * num_edges)).todense() # Convert this back to a digraph thingy
-                A_thinned = A_thinned * rho / np.max(np.abs(np.linalg.eigvals(A_thinned)))
-                res = rc.ResComp(A_thinned, res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
-                res.train(t_train, U_train)
-
-                # t_curr = time_comp(t_curr, f"Train Thinned")
-
-                # Calculate Consistency Metric
-                r0 = res.initial_condition(U_train[0])
-                r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
-                states = res.internal_state_response(t_train, U_train, r0)
-                states_perturbed = res.internal_state_response(t_train, U_train, r0_perturbed)
-                consistency_correlation = pearson_consistency_metric(states, states_perturbed)
-
-                # t_curr = time_comp(t_curr, f"States and Consistency Thinned")
-
-                # Forecast and compute the vpt along with diversity metrics
-                U_pred, pred_states = res.predict(t_test, r0=r0, return_states=True)
-                error = np.linalg.norm(U_test - U_pred, axis=1)
-                vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
-                divs = div_metric_tests(pred_states, T=batchsize, n=n)
-
-                # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
-
-                # Store results
-                div_pos_thinned.append(divs[0])
-                div_der_thinned.append(divs[1])
-                pred_thinned.append(U_pred)
-                err_thinned.append(error)
-                vpt_thinned.append(vpt)
-                consistency_correlation_thinned.append(consistency_correlation)
-
-                # t_curr = time_comp(t_curr, f"Store results thinned")
-
-            # Store datasets
-            group.create_dataset('div_der_thinned', data=div_der_thinned)
-            group.create_dataset('div_pos_thinned', data=div_pos_thinned)
-            group.create_dataset('div_der_connected', data=div_der_connected)
-            group.create_dataset('div_pos_connected', data=div_pos_connected)
-            group.create_dataset('vpt_thinned', data=vpt_thinned)
-            group.create_dataset('vpt_connected', data=vpt_connected)
-            group.create_dataset('pred_thinned', data=pred_thinned)
-            group.create_dataset('pred_connected', data=pred_connected)
-            group.create_dataset('err_thinned', data=err_thinned)
-            group.create_dataset('err_connected', data=err_connected)
-            group.create_dataset('consistency_thinned', data=consistency_correlation_thinned)
-            group.create_dataset('consistency_connected', data=consistency_correlation_connected)
-
-            # t_curr = time_comp(t_curr, f"Store datasets")
-
-
-            # Store Means
-            group.attrs['mean_pred_thinned'] = np.mean(pred_thinned)
-            group.attrs['mean_pred_connected'] = np.mean(pred_connected)
-            group.attrs['mean_err_thinned'] = np.mean(err_thinned)
-            group.attrs['mean_err_connected'] = np.mean(err_connected)
-            group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
-            group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected)
-
-
-def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='lorenz', draw_count=100, tf=85000, hdf5_file="results/erdos_results.h5", rho=0.1, p_thin=0.0):
-    """ Run the gridsearch over possible combinations
-    """
-
-    # Train Test Split the system
-    duration = 55
-    dt = 0.01
-    trainper = 0.72727273
-    batchsize = int(duration / dt * trainper)
-    t_train, U_train, t_test, U_test = rc.train_test_orbit(system, duration=duration, dt=dt, trainper=trainper)
-    eps = 1e-5
-    tol = 5.
-
-    # Parameters
-    t0 = time.time()
-    # t_curr = t0
-    # combination_length = len(erdos_possible_combinations)
 
     # Create a new HDF5 file
     with h5py.File(hdf5_file, 'w') as file:
@@ -401,69 +593,29 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
             div_der_thinned = [] 
             div_pos_thinned = [] 
             div_der_connected = [] 
-            div_pos_connected = [] 
             vpt_thinned = []
-            vpt_connected = []
             pred_thinned = []
-            pred_connected = []
             err_thinned = []
-            err_connected = []
             consistency_correlation_thinned = []
-            consistency_correlation_connected = []
 
                 
             try:
-                # Generate connected and thinned networks
-                A_connected = nx.erdos_renyi_graph(n,erdos_c/(n-1),directed=True)
-                A_connected = sparse.dok_matrix(nx.adjacency_matrix(A_connected).T)
+                # Generate thinned networks
                 A_thinned = nx.erdos_renyi_graph(n,erdos_c*(1-p_thin)/(n-1),directed=True)
                 A_thinned = sparse.dok_matrix(nx.adjacency_matrix(A_thinned).T)
-
-                # Run the connected network
-                res_connected = rc.ResComp(A_connected.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
-                res_connected.train(t_train, U_train)
+                A_thinned_rho = np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0]))
+                if A_thinned_rho < 1e-8:
+                   raise ValueError('Thinned Matrix Spectral Radius too small for scaling')
+                A_thinned = A_thinned*(rho/np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0])))
 
                 # Run the thinned network
-                res_thinned = rc.ResComp(A_thinned.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, batchsize=batchsize)
+                res_thinned = rc.ResComp(A_thinned.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma)
                 res_thinned.train(t_train, U_train)
-
-
-
-                # t_curr = time_comp(t_curr, f"Train Connected")
-
-                # Calculate Consistency Metric
-                r0 = res_connected.r0
-                r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
-                states = res_connected.internal_state_response(t_train, U_train, r0)
-                states_perturbed = res_connected.internal_state_response(t_train, U_train, r0_perturbed)
-                consistency_correlation = pearson_consistency_metric(states, states_perturbed)
-
-                # t_curr = time_comp(t_curr, f"States and Consistency Connected")
-
-                # Forecast and compute the vpt along with diversity metrics
-                U_pred, pred_states = res_connected.predict(t_test, r0=r0, return_states=True)
-                error = np.linalg.norm(U_test - U_pred, axis=1)
-                vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
-                divs = div_metric_tests(pred_states, T=batchsize, n=n)
-
-                # t_curr = time_comp(t_curr, f"Predict, vpt, divs connected")
-
-                # Store results
-                div_pos_connected.append(divs[0])
-                div_der_connected.append(divs[1])
-                pred_connected.append(U_pred)
-                err_connected.append(error)
-                vpt_connected.append(vpt)
-                consistency_correlation_connected.append(consistency_correlation)
-
-                # t_curr = time_comp(t_curr, f"Store results connected")
-
-
 
                 # t_curr = time_comp(t_curr, f"Train Thinned")
 
                 # Calculate Consistency Metric
-                r0 = res_thinned.r0
+                r0 = res_thinned.initial_condition(U_train[0])
                 r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
                 states = res_thinned.internal_state_response(t_train, U_train, r0)
                 states_perturbed = res_thinned.internal_state_response(t_train, U_train, r0_perturbed)
@@ -475,7 +627,7 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
                 U_pred, pred_states = res_thinned.predict(t_test, r0=r0, return_states=True)
                 error = np.linalg.norm(U_test - U_pred, axis=1)
                 vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
-                divs = div_metric_tests(pred_states, T=batchsize, n=n)
+                divs = div_metric_tests(pred_states, T=len(t_test), n=n)
 
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
 
@@ -491,19 +643,28 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
 
             except ArpackNoConvergence: # Occasionally sparse linalg eigs isn't able to converge
                 i = i-1
-                del file[f"param_set_{i}"]
+                if f"param_set_{i}" in file:
+                    del file[f"param_set_{i}"]
                 print("ArpackNoConvergence Error Caught")
                 continue
             except OverflowError: # Solving for W_out hits overflow errors with high spectral radius and high p_thin
                 i = i-1
-                del file[f"param_set_{i}"]
+                if f"param_set_{i}" in file:
+                    del file[f"param_set_{i}"]
                 print("Overflow Error Caught")
+                continue
+            except ValueError as err:
+                i = i-1
+                if f"param_set_{i}" in file:
+                    del file[f"param_set_{i}"]
+                print(rho, p_thin, err.args)
                 continue
             except Exception as e:
                 i = i-1
-                del file[f"param_set_{i}"]
+                if f"param_set_{i}" in file:
+                    del file[f"param_set_{i}"]
                 print("General Error")
-                logging.error(traceback.format_exc())
+                # logging.error(traceback.format_exc())
                 continue
                     
 
@@ -511,15 +672,10 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
             group.create_dataset('div_der_thinned', data=div_der_thinned)
             group.create_dataset('div_pos_thinned', data=div_pos_thinned)
             group.create_dataset('div_der_connected', data=div_der_connected)
-            group.create_dataset('div_pos_connected', data=div_pos_connected)
             group.create_dataset('vpt_thinned', data=vpt_thinned)
-            group.create_dataset('vpt_connected', data=vpt_connected)
             group.create_dataset('pred_thinned', data=pred_thinned)
-            group.create_dataset('pred_connected', data=pred_connected)
             group.create_dataset('err_thinned', data=err_thinned)
-            group.create_dataset('err_connected', data=err_connected)
             group.create_dataset('consistency_thinned', data=consistency_correlation_thinned)
-            group.create_dataset('consistency_connected', data=consistency_correlation_connected)
 
             # t_curr = time_comp(t_curr, f"Store datasets")
 
@@ -528,15 +684,10 @@ def rescomp_parallel_gridsearch_uniform_h5(erdos_possible_combinations, system='
             group.attrs['div_der_thinned'] = np.mean(div_der_thinned)
             group.attrs['div_pos_thinned'] = np.mean(div_pos_thinned)
             group.attrs['div_der_connected'] = np.mean(div_der_connected)
-            group.attrs['div_pos_connected'] = np.mean(div_pos_connected)
             group.attrs['mean_vpt_thinned'] = np.mean(vpt_thinned)
-            group.attrs['mean_vpt_connected'] = np.mean(vpt_connected)
             group.attrs['mean_pred_thinned'] = np.mean(pred_thinned)
-            group.attrs['mean_pred_connected'] = np.mean(pred_connected)
             group.attrs['mean_err_thinned'] = np.mean(err_thinned)
-            group.attrs['mean_err_connected'] = np.mean(err_connected)
             group.attrs['mean_consistency_thinned'] = np.mean(consistency_correlation_thinned)
-            group.attrs['mean_consistency_connected'] = np.mean(consistency_correlation_connected) 
 
 
 
@@ -562,7 +713,7 @@ if __name__ == "__main__":
 
     rho, p_thin = rho_p_thin_prod[RANK]
     results_path = '/home/seyfdall/compute/network_theory/thinned_rescomp/'
-    rescomp_parallel_gridsearch_uniform_h5(
+    rescomp_parallel_gridsearch_uniform_thinned_h5(
         erdos_possible_combinations, 
         draw_count=10000, 
         hdf5_file=f'{results_path}results/erdos_results_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5', 

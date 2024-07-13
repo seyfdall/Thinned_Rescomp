@@ -1,5 +1,7 @@
 # The Results folders hold massive amounts of data and therefore can't be uploaded
 results/
+results_fail/
+results_old/
 results_test/
 results_test_old/
 _common.py
