@@ -285,7 +285,7 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 # t_curr = time_comp(t_curr, f"States and Consistency Thinned")
 
                 # Forecast and compute the vpt along with diversity metrics
-                U_pred, pred_states = res_thinned.predict(t_test, r0=r0, return_states=True)
+                U_pred, pred_states = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)
                 error = np.linalg.norm(U_test - U_pred, axis=1)
                 vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
                 divs = div_metric_tests(pred_states, T=len(t_test), n=n)

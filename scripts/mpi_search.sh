@@ -1,6 +1,6 @@
 #!/bin/bash --login
 
-#SBATCH --time=48:00:00   # walltime
+#SBATCH --time=60:00:00   # walltime
 #SBATCH --ntasks=171   # number of processor cores (i.e. tasks)
 #SBATCH --mem-per-cpu=2048M   # memory per CPU core
 #SBATCH -J "Reservoir_Gridsearch"   # job name
