@@ -249,8 +249,6 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
             group.attrs['sigma'] = sigma
             group.attrs['alpha'] = alpha
 
-            # Debug times 
-
             div_der_thinned = [] 
             div_pos_thinned = [] 
             div_der_connected = [] 
@@ -262,15 +260,14 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 
             try:
                 # Generate thinned networks
-                A_thinned = nx.erdos_renyi_graph(n,erdos_c*(1-p_thin)/(n-1),directed=True)
-                A_thinned = sparse.dok_matrix(nx.adjacency_matrix(A_thinned).T)
-                A_thinned_rho = np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0]))
-                if A_thinned_rho < 1e-8:
-                   raise ValueError('Thinned Matrix Spectral Radius too small for scaling')
-                A_thinned = A_thinned*(rho/np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0])))
+                # A_thinned = nx.erdos_renyi_graph(n,erdos_c*(1-p_thin)/(n-1),directed=True)
+                # A_thinned = sparse.dok_matrix(nx.adjacency_matrix(A_thinned).T)
+                # A_thinned_rho = np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0]))
+                # if A_thinned_rho < 1e-8:
+                #     raise ValueError('Thinned Matrix Spectral Radius too small for scaling')
+                # A_thinned = A_thinned*(rho/np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0])))
 
-                # Run the thinned network
-                res_thinned = rc.ResComp(A_thinned.tocoo(), res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma)
+                res_thinned = rc.ResComp(res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, map_initial='activ_f')                
                 res_thinned.train(t_train, U_train)
 
                 # t_curr = time_comp(t_curr, f"Train Thinned")
@@ -373,7 +370,7 @@ if __name__ == "__main__":
     RANK = MPI.COMM_WORLD.Get_rank()
 
     rho, p_thin = rho_p_thin_prod[RANK]
-    results_path = '/home/seyfdall/compute/network_theory/thinned_rescomp/'
+    results_path = '/nobackup/archive/usr/seyfdall/network_theory/thinned_rescomp/'
     rescomp_parallel_gridsearch_uniform_thinned_h5(
         erdos_possible_combinations, 
         draw_count=10000, 
