@@ -167,7 +167,8 @@ def gridsearch_uniform_dict_setup():
     # Topological Parameters
     # ns = [500, 1500, 2500]
     ns = [500]
-    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
+    # TODO: Add 1.0 back into p_thin?
+    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 0.99, 0.02)))
     # p_thins = [0.1, 0.5]
 
     # Model Specific Parameters
@@ -201,7 +202,7 @@ Perform the Gridsearch
 def rescomp_parallel_gridsearch_uniform_thinned_h5(
         erdos_possible_combinations, 
         system='lorenz', 
-        draw_count=100, 
+        draw_count=10000, 
         tf=144000, 
         hdf5_file="results/erdos_results.h5", 
         rho=0.1, 
@@ -267,7 +268,9 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 #     raise ValueError('Thinned Matrix Spectral Radius too small for scaling')
                 # A_thinned = A_thinned*(rho/np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0])))
 
-                res_thinned = rc.ResComp(res_sz=n, ridge_alpha=alpha, spect_rad=rho, sigma=sigma, gamma=gamma, map_initial='activ_f')                
+                res_thinned = rc.ResComp(res_sz=n, mean_degree=erdos_c*(1-p_thin), 
+                                         ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
+                                         gamma=gamma, map_initial='activ_f')                
                 res_thinned.train(t_train, U_train)
 
                 # t_curr = time_comp(t_curr, f"Train Thinned")
