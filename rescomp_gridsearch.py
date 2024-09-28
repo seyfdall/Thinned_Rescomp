@@ -17,7 +17,7 @@ import time
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 # Set seed for reproducibility
-np.random.seed(1)
+# np.random.seed(1)
 from math import comb
 import h5py
 from mpi4py import MPI
@@ -134,46 +134,16 @@ def pearson_consistency_metric(states, states_perturbed):
 Gridsearch Parameter Setup
 """
 
-def gridsearch_dict_setup():
-    # Topological Parameters
-    ns = [500, 1500, 2500]
-    # ns = [500]
-    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
-
-    # Model Specific Parameters
-    # erdos_renyi_c = [.5,1,2,3,4]
-    random_digraph_c = [.5,1,2,3,4]
-    random_geometric_c = [.5,1,2,3,4]
-    barabasi_albert_m = [1,2]
-    watts_strogatz_k = [2,4]
-    watt_strogatz_q = [.01,.05,.1]
-
-    # Reservoir Computing Parameters
-    gammas = [0.1,0.5,1,2,5,10,25,50]
-    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
-    sigmas = [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10]
-    alphas = [1e-8,1e-6,1e-4,1e-2,1]
-
-    erdos_possible_combinations = list(itertools.product(ns, p_thins, gammas, rhos, sigmas, alphas))
-    # digraph_possible_combinations = list(itertools.product(ns, p_thins, random_digraph_c, gammas, rhos, sigmas, alphas))
-    # geometric_possible_combinations = list(itertools.product(ns, p_thins, random_geometric_c, gammas, rhos, sigmas, alphas))
-    # barabasi_possible_combinations = list(itertools.product(ns, p_thins, barabasi_albert_m, gammas, rhos, sigmas, alphas))
-    # strogatz_possible_combinations = list(itertools.product(ns, p_thins, watts_strogatz_k, watt_strogatz_q, gammas, rhos, sigmas, alphas))
-
-    return erdos_possible_combinations
-
-
 def gridsearch_uniform_dict_setup():
     # Topological Parameters
     # ns = [500, 1500, 2500]
     ns = [500]
-    # TODO: Add 1.0 back into p_thin?
-    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 0.99, 0.02)))
+    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
     # p_thins = [0.1, 0.5]
 
     # Model Specific Parameters
-    # erdos_renyi_c = [.5,1,2,3,4]
-    erdos_renyi_c = [0.5, 1, 2, 3, 4]
+    # erdos_renyi_c = [0.5, 1, 2, 3, 4]
+    erdos_renyi_c = [4]
     # random_digraph_c = [.5,1,2,3,4]
     # random_geometric_c = [.5,1,2,3,4]
     # barabasi_albert_m = [1,2]
@@ -240,16 +210,6 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
             # Setup initial conditions
             n, erdos_c, gamma, sigma, alpha = param_set
 
-            # t_curr = time_comp(t_curr, "Create Group")
-            group = file.create_group(f"param_set_{i}")
-            group.attrs['n'] = n
-            group.attrs['p_thin'] = p_thin
-            group.attrs['erdos_c'] = erdos_c
-            group.attrs['gamma'] = gamma
-            group.attrs['rho'] = rho
-            group.attrs['sigma'] = sigma
-            group.attrs['alpha'] = alpha
-
             div_der_thinned = [] 
             div_pos_thinned = [] 
             div_der_connected = [] 
@@ -261,14 +221,11 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 
             try:
                 # Generate thinned networks
-                # A_thinned = nx.erdos_renyi_graph(n,erdos_c*(1-p_thin)/(n-1),directed=True)
-                # A_thinned = sparse.dok_matrix(nx.adjacency_matrix(A_thinned).T)
-                # A_thinned_rho = np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0]))
-                # if A_thinned_rho < 1e-8:
-                #     raise ValueError('Thinned Matrix Spectral Radius too small for scaling')
-                # A_thinned = A_thinned*(rho/np.max(np.abs(sparse.linalg.eigs(A_thinned.astype(float))[0])))
-
-                res_thinned = rc.ResComp(res_sz=n, mean_degree=erdos_c*(1-p_thin), 
+                mean_degree = erdos_c*(1-p_thin)
+                if mean_degree < 0.0:
+                    mean_degree = 0.0
+                print("Here", rho, p_thin)
+                res_thinned = rc.ResComp(res_sz=n, mean_degree=mean_degree, 
                                          ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
                                          gamma=gamma, map_initial='activ_f')                
                 res_thinned.train(t_train, U_train)
@@ -318,7 +275,9 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 i = i-1
                 if f"param_set_{i}" in file:
                     del file[f"param_set_{i}"]
-                print(rho, p_thin, err.args)
+                print(rho, p_thin, erdos_c, str(err))
+                print(n, erdos_c*(1-p_thin), erdos_c*(1-p_thin) / n)
+                traceback.print_exc()  # This will print the stack trace
                 continue
             except Exception as e:
                 i = i-1
@@ -327,7 +286,17 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 print("General Error")
                 # logging.error(traceback.format_exc())
                 continue
-                    
+
+
+            # t_curr = time_comp(t_curr, "Create Group")
+            group = file.create_group(f"param_set_{i}")
+            group.attrs['n'] = n
+            group.attrs['p_thin'] = p_thin
+            group.attrs['erdos_c'] = erdos_c
+            group.attrs['gamma'] = gamma
+            group.attrs['rho'] = rho
+            group.attrs['sigma'] = sigma
+            group.attrs['alpha'] = alpha
 
             # Store datasets
             group.create_dataset('div_der_thinned', data=div_der_thinned)
@@ -373,11 +342,12 @@ if __name__ == "__main__":
     RANK = MPI.COMM_WORLD.Get_rank()
 
     rho, p_thin = rho_p_thin_prod[RANK]
-    results_path = '/nobackup/archive/usr/seyfdall/network_theory/thinned_rescomp/'
+    results_path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/'
     rescomp_parallel_gridsearch_uniform_thinned_h5(
         erdos_possible_combinations, 
         draw_count=10000, 
         hdf5_file=f'{results_path}results/erdos_results_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5', 
         rho=rho, 
-        p_thin=p_thin
+        p_thin=p_thin,
+        tf=210000
     )

@@ -1,7 +1,7 @@
 #!/bin/bash --login
 
 #SBATCH --time=60:00:00   # walltime
-#SBATCH --ntasks=162   # number of processor cores (i.e. tasks)
+#SBATCH --ntasks=171   # number of processor cores (i.e. tasks)
 #SBATCH --mem-per-cpu=2048M   # memory per CPU core
 #SBATCH -J "Reservoir_Gridsearch"   # job name
 #SBATCH --output=./results/mpi_gridsearch_test.txt
@@ -16,7 +16,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-cd /nobackup/archive/usr/seyfdall/network_theory/thinned_rescomp
+cd /nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp
 mamba activate reservoir
 # module load mpi/openmpi-1.10.7_gnu4.8.5
 export MPICC=$(which mpicc)
