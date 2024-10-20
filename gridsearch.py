@@ -36,7 +36,7 @@ def div_metric_tests(preds, T, n):
     div = 0
     old_div = 0
     for i in range(n):
-        for j in range(n):
+        for j in range(i+1, n):
             div += np.sum(np.abs(np.abs(preds[:T, i]) - np.abs(preds[:T, j])))
             old_div += np.sum(np.abs(res_deriv[:T, i] - res_deriv[:T, j]))
     div = div / (T*comb(n,2))

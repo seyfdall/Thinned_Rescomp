@@ -15,8 +15,6 @@
 export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-
-# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 cd /nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp
 mamba activate reservoir
 # module load mpi/openmpi-1.10.7_gnu4.8.5

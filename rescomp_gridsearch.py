@@ -79,8 +79,8 @@ def div_metric_tests(preds, T, n):
     # Run the metric for the old and new diversity scores
     div_pos = 0
     div_der = 0
-    for i in range(n):
-        for j in range(n):
+    for i in range(n-1):
+        for j in range(i+1,n):
             div_pos += np.sum(np.abs(np.abs(preds[:T, i]) - np.abs(preds[:T, j])))
             div_der += np.sum(np.abs(res_deriv[:T, i] - res_deriv[:T, j]))
     denom = T*comb(n,2)
@@ -128,6 +128,61 @@ def pearson_consistency_metric(states, states_perturbed):
         aggregated_pearson_correlation_coeff = np.mean(gammas[np.isfinite(gammas)])
         return aggregated_pearson_correlation_coeff
 
+
+def consistency_analysis(x, y, alpha=1e-9):
+    """ Based on the Appendix: Consistency Analysis walkthrough sent by Tom
+        Parameters:
+        ----------
+        x: ndarray(L,N)
+            States using initial state r0. L = time, n = number of nodes
+
+        y: ndarray(L,N)
+            States using different initial state r0 prime. L = time, n = number of nodes
+
+        Returns:
+        --------
+        cap: float
+            The consistency capacity of the system
+        S: ndarray(N)
+            Each node's consistency
+    """
+    L, N = np.shape(x)
+
+    # Center x and y around 0
+    x = x - np.mean(x)
+    y = y - np.mean(y)
+
+    # Calculate Covariance Matrices
+    Cxx = x.T @ x / L
+    Cyy = y.T @ y / L
+
+    # Save space by averaging the two
+    C = (Cxx + Cyy) / 2.
+
+    # Add regularization term 
+    C = C + alpha * np.eye(N)
+
+    # Compute SVD
+    U, S, Vh = np.linalg.svd(C)
+    Qxx = U
+    S_inv = np.diag(1. / np.sqrt(S))
+
+    # Apply spherical transformation T_o
+    T_o = Qxx @ S_inv @ Qxx.T
+    x = T_o @ x.T # TODO: Shifted these to transposes - is this right?
+    y = T_o @ y.T
+
+    # Calculate Cross-variance matrix
+    Cxy = x.T @ y / L
+    Css = (Cxy + Cxy.T) / 2.
+
+    # Calculate SVD of Css to find principal components of consistency
+    U, S, Vh = np.linalg.svd(Css)
+
+    # Calculate consistency capacity
+    cap = np.sum(S) / N
+
+    return cap, S
 
 
 """
@@ -224,22 +279,26 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 mean_degree = erdos_c*(1-p_thin)
                 if mean_degree < 0.0:
                     mean_degree = 0.0
-                print("Here", rho, p_thin)
+                
                 res_thinned = rc.ResComp(res_sz=n, mean_degree=mean_degree, 
                                          ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
-                                         gamma=gamma, map_initial='activ_f')                
+                                         gamma=gamma, map_initial='activ_f')       
+
+                # Compute Consistency Metric
+                # First replica run
+                r0_1 = np.random.uniform(-1., 1., n)
+                states_1 = res_thinned.internal_state_response(t_train, U_train, r0_1)
+
+                # Second replica run
+                r0_2 = np.random.uniform(-1., 1., n)
+                states_2 = res_thinned.internal_state_response(t_train, U_train, r0_2)
+
+                cap, S = consistency_analysis(states_1, states_2)
+
+                # Train the matrix         
                 res_thinned.train(t_train, U_train)
 
                 # t_curr = time_comp(t_curr, f"Train Thinned")
-
-                # Calculate Consistency Metric
-                r0 = res_thinned.initial_condition(U_train[0])
-                r0_perturbed = r0 + np.random.multivariate_normal(np.zeros(n), np.eye(n)*eps)
-                states = res_thinned.internal_state_response(t_train, U_train, r0)
-                states_perturbed = res_thinned.internal_state_response(t_train, U_train, r0_perturbed)
-                consistency_correlation = pearson_consistency_metric(states, states_perturbed)
-
-                # t_curr = time_comp(t_curr, f"States and Consistency Thinned")
 
                 # Forecast and compute the vpt along with diversity metrics
                 U_pred, pred_states = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)
@@ -255,7 +314,7 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 pred_thinned.append(U_pred)
                 err_thinned.append(error)
                 vpt_thinned.append(vpt)
-                consistency_correlation_thinned.append(consistency_correlation)
+                consistency_correlation_thinned.append(cap)
 
                 # t_curr = time_comp(t_curr, f"Store results thinned")
 
