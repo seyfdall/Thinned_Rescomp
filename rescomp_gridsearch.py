@@ -192,7 +192,7 @@ Gridsearch Parameter Setup
 def gridsearch_uniform_dict_setup():
     # Topological Parameters
     # ns = [500, 1500, 2500]
-    ns = [500]
+    ns = [1500]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
     # p_thins = [0.1, 0.5]
 
