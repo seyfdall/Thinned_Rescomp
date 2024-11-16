@@ -2,6 +2,7 @@
 results/
 results_fail/
 results_old/
+results_old_divs/
 results_test/
 results_test_old/
 _common.py

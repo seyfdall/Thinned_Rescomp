@@ -24,6 +24,15 @@ from mpi4py import MPI
 import traceback
 import logging
 
+"""
+Import Inhouse Rescomp
+"""
+import sys
+import os
+sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/rescomp_package/rescomp'))
+import ResComp
+import chaosode
+
 
 """
 Debugging Functions
@@ -40,16 +49,16 @@ Automating Tests
 """
 
 def nrmse(true, pred):
-        """ Normalized root mean square error. (A metric for measuring difference in orbits)
-        Parameters:
-            Two mxn arrays. Axis zero is assumed to be the time axis (i.e. there are m time steps)
-        Returns:
-            err (ndarray): Error at each time value. 1D array with m entries
-        """
-        # sig = np.std(true, axis=0)
-        # err = np.linalg.norm((true-pred) / sig, axis=1, ord=2)
-        err = np.linalg.norm((true-pred), axis=1, ord=2) # Just regular 2-norm
-        return err
+    """ Normalized root mean square error. (A metric for measuring difference in orbits)
+    Parameters:
+        Two mxn arrays. Axis zero is assumed to be the time axis (i.e. there are m time steps)
+    Returns:
+        err (ndarray): Error at each time value. 1D array with m entries
+    """
+    # sig = np.std(true, axis=0)
+    # err = np.linalg.norm((true-pred) / sig, axis=1, ord=2)
+    err = np.linalg.norm((true-pred), axis=1, ord=2) # Just regular 2-norm
+    return err
 
 def valid_prediction_index(err, tol):
     """First index i where err[i] > tol. err is assumed to be 1D and tol is a float. If err is never greater than tol, then len(err) is returned."""
@@ -70,19 +79,20 @@ def vpt_time(ts, Uts, pre, vpt_tol=5.):
         vptime = ts[idx-1] - ts[0]
     return vptime
 
-def div_metric_tests(preds, T, n):
+def div_metric_tests(states):
     """ Compute Diversity scores of predictions
     """
     # Take the derivative of the pred_states
-    res_deriv = np.gradient(preds[:T], axis=0)
+    res_deriv = np.gradient(states, axis=0)
+    T, n = states.shape
 
     # Run the metric for the old and new diversity scores
     div_pos = 0
     div_der = 0
     for i in range(n-1):
-        for j in range(i+1,n):
-            div_pos += np.sum(np.abs(np.abs(preds[:T, i]) - np.abs(preds[:T, j])))
-            div_der += np.sum(np.abs(res_deriv[:T, i] - res_deriv[:T, j]))
+        for j in range(i+1, n):
+            div_pos += np.sum(np.abs(np.abs(np.abs(states[:T, i]) - np.abs(states[:T, j]))))
+            div_der += np.sum(np.abs(np.abs(res_deriv[:T, i]) - np.abs(res_deriv[:T, j])))
     denom = T*comb(n,2)
     div_pos = div_pos / denom
     div_der = div_der / denom
@@ -208,7 +218,6 @@ def gridsearch_uniform_dict_setup():
     # Reservoir Computing Parameters
     gammas = [0.1,0.5,1,2,5,10,25,50]
     rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
-    # rhos = [5.0, 10.0]
     sigmas = [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10]
     alphas = [1e-8,1e-6,1e-4,1e-2,1]
 
@@ -217,6 +226,25 @@ def gridsearch_uniform_dict_setup():
     # geometric_possible_combinations = list(itertools.product(ns, p_thins, random_geometric_c, gammas, rhos, sigmas, alphas))
     # barabasi_possible_combinations = list(itertools.product(ns, p_thins, barabasi_albert_m, gammas, rhos, sigmas, alphas))
     # strogatz_possible_combinations = list(itertools.product(ns, p_thins, watts_strogatz_k, watt_strogatz_q, gammas, rhos, sigmas, alphas))
+    return rhos, p_thins, erdos_possible_combinations
+
+
+def trevor_params():
+    # Topological Parameters
+    ns = [50]
+
+    # Model Specific Parameters
+    erdos_renyi_c = [4]
+
+    # Reservoir Computing Parameters
+    gammas = [5]
+    sigmas = [.14]
+    alphas = [1e-6]
+
+    rhos = [.01, .1, 1., 2., 5., 10., 20., 35., 50.]
+    p_thins = [0., .1, .2, .4, .6, .8, .9, .96, 1.]
+
+    erdos_possible_combinations = list(itertools.product(ns, erdos_renyi_c, gammas, sigmas, alphas))
     return rhos, p_thins, erdos_possible_combinations
 
 
@@ -231,23 +259,27 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
         tf=144000, 
         hdf5_file="results/erdos_results.h5", 
         rho=0.1, 
-        p_thin=0.0
+        p_thin=0.0,
+        rank=0
     ):
     """ Run the gridsearch over possible combinations
     """
 
     # GET TRAINING AND TESTING SIGNALS
-    t, U = rc.orbit('lorenz', duration=50)
+    duration = 50
+    test_train_switch = (duration-10)*100
+    t, U = chaosode.orbit('lorenz', duration=duration)
     u = CubicSpline(t, U)
-    t_train = t[:4000]
-    U_train = u(t[:4000])
-    t_test = t[4000:]
-    U_test = u(t[4000:])
+    t_train = t[:test_train_switch]
+    U_train = u(t_train)
+    t_test = t[test_train_switch:]
+    U_test = u(t_test)
     eps = 1e-5
     tol = 5.
 
     # Parameters
     t0 = time.time()
+    print(f"Here, {rank, p_thin, rho}")
 
     # Create a new HDF5 file
     with h5py.File(hdf5_file, 'w') as file:
@@ -280,9 +312,11 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 if mean_degree < 0.0:
                     mean_degree = 0.0
                 
-                res_thinned = rc.ResComp(res_sz=n, mean_degree=mean_degree, 
+                res_thinned = ResComp.ResComp(res_sz=n, mean_degree=mean_degree, 
                                          ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
                                          gamma=gamma, map_initial='activ_f')       
+                
+                print(f"Here 2 {rank, p_thin, rho}")
 
                 # Compute Consistency Metric
                 # First replica run
@@ -300,11 +334,13 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
 
                 # t_curr = time_comp(t_curr, f"Train Thinned")
 
+                print(f"Here 3 {rank, p_thin, rho}")
+
                 # Forecast and compute the vpt along with diversity metrics
-                U_pred, pred_states = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)
+                U_pred = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)[0]
                 error = np.linalg.norm(U_test - U_pred, axis=1)
                 vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
-                divs = div_metric_tests(pred_states, T=len(t_test), n=n)
+                divs = div_metric_tests(res_thinned.states)
 
                 # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
 
@@ -343,7 +379,7 @@ def rescomp_parallel_gridsearch_uniform_thinned_h5(
                 if f"param_set_{i}" in file:
                     del file[f"param_set_{i}"]
                 print("General Error")
-                # logging.error(traceback.format_exc())
+                logging.error(traceback.format_exc())
                 continue
 
 
@@ -385,7 +421,7 @@ Main Method
 """
 
 if __name__ == "__main__":
-    rhos, p_thins, erdos_possible_combinations = gridsearch_uniform_dict_setup()
+    rhos, p_thins, erdos_possible_combinations = trevor_params()
 
     n, m = len(rhos), len(p_thins)
 
@@ -399,6 +435,7 @@ if __name__ == "__main__":
     
     # Split the Erdos_c exploration according to RANK
     RANK = MPI.COMM_WORLD.Get_rank()
+    print(RANK)
 
     rho, p_thin = rho_p_thin_prod[RANK]
     results_path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/'
@@ -408,5 +445,6 @@ if __name__ == "__main__":
         hdf5_file=f'{results_path}results/erdos_results_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5', 
         rho=rho, 
         p_thin=p_thin,
-        tf=210000
+        tf=21000,
+        rank=RANK
     )
