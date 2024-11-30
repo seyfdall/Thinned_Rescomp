@@ -108,7 +108,7 @@ class GroupIOHandler:
         self.datasets = {}
 
         group_name = append_keywords_to_string(group_name, **kwargs)
-        print(group_name, h5file.keys(), group_name in h5file, '\n')
+        # print(group_name, h5file.keys(), group_name in h5file, '\n')
         if group_name in h5file:
             self.group = h5file[group_name]
         else:
@@ -225,27 +225,27 @@ def get_file_data(hdf5_file='results/erdos_results_0.h5'):
     """
 
     with h5py.File(hdf5_file, 'r') as file:
-        vpt_thinned_list = []
-        div_pos_thinned_list = []
-        div_der_thinned_list = []
-        consistency_thinned_list = []
+        vpt_list = []
+        div_pos_list = []
+        div_der_list = []
+        consistency_list = []
 
         for group_name in file.keys():
             group = file[group_name]
-            if 'mean_vpt_thinned' not in list(group.attrs):
+            if 'mean_vpt' not in list(group.attrs):
                 continue
-            vpt_thinned_list.append(group.attrs['mean_vpt_thinned'])
-            div_pos_thinned_list.append(group.attrs['div_pos_thinned'])
-            div_der_thinned_list.append(group.attrs['div_der_thinned'])
-            consistency_thinned_list.append(group.attrs['mean_consistency_thinned'])
+            vpt_list.append(group.attrs['mean_vpt'])
+            div_pos_list.append(group.attrs['mean_div_pos'])
+            div_der_list.append(group.attrs['mean_div_der'])
+            consistency_list.append(group.attrs['mean_consistency_correlation'])
             # print('{}, c: {}, vpt_connected: {}, p_thin: {}, vpt_thinned: {}'.format(group_name, c, vpt_connected, p_thin, vpt_thinned))
         # print('vpt_connected_average: {}, vpt_thinned_average: {}'.format(np.mean(vpt_connected_list), np.mean(vpt_thinned_list)))
         
-        mean_vpt = np.mean(vpt_thinned_list)
-        mean_div_pos = np.mean(div_pos_thinned_list)
-        mean_div_der = np.mean(div_der_thinned_list)
-        mean_consistency = np.mean(consistency_thinned_list)
-        print(f"Number of draws successfully made for {hdf5_file}: {len(vpt_thinned_list)}")
+        mean_vpt = np.mean(vpt_list)
+        mean_div_pos = np.mean(div_pos_list)
+        mean_div_der = np.mean(div_der_list)
+        mean_consistency = np.mean(consistency_list)
+        print(f"Number of draws successfully made for {hdf5_file}: {len(vpt_list)}")
         print(f"Mean diversity: {mean_div_pos, mean_div_der}")
         
         return mean_vpt, mean_div_pos, mean_div_der, mean_consistency

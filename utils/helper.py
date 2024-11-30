@@ -8,7 +8,7 @@ Import Inhouse Rescomp
 """
 import sys
 import os
-sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/rescomp_package/rescomp'))
+sys.path.insert(0, os.path.abspath('/mnt/c/Users/dseyf/SeniorLabs/Research/Network_Theory/rescomp_package/rescomp/'))
 import ResComp
 import chaosode
 

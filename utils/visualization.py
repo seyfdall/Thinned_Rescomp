@@ -1,26 +1,12 @@
 import rescomp as rc
 import numpy as np
-from scipy.interpolate import CubicSpline
-from scipy import integrate, sparse
-from scipy.stats import pearsonr
-from scipy.sparse.linalg import eigs, ArpackNoConvergence
-from scipy.sparse import coo_matrix
-import math 
-import networkx as nx
 import itertools
-import csv
-import time
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
-# Set seed for reproducibility
-np.random.seed(1)
-from math import comb
-import h5py
-from mpi4py import MPI
-from glob import glob
 from matplotlib import pyplot as plt
 import matplotlib
-from matplotlib.ticker import MaxNLocator
+from file_io import get_system_data
+import helper
 
 
 
@@ -65,7 +51,14 @@ def create_system_plot(values, ax, title, threshold, p_thins=[], rhos=[]):
     plt.colorbar(mappable=sm, ax=ax)
 
 
-def create_plots(mean_values=[], thresholds=[10,10,10,10], cutoff=False):
+def create_plots(
+        mean_values=[], 
+        thresholds=[10,10,10,10], 
+        cutoff=False,
+        results_path='/mnt/c/Users/dseyf/SeniorLabs/Research/Network_Theory/thinned_rescomp/results/',
+        rhos=[],
+        p_thins=[]
+    ):
     fig, axs = plt.subplots(1,4, figsize=(14,3.2))
 
     titles = ['VPT', 'Div_Pos', 'Div_Der', 'Consistency']
@@ -73,7 +66,23 @@ def create_plots(mean_values=[], thresholds=[10,10,10,10], cutoff=False):
     for i in range(len(mean_values)):
         if cutoff:
             mean_values[i][mean_values[i] > thresholds[i]] = 0
-        create_system_plot(mean_values[i], axs[i], titles[i], thresholds[i])
+        create_system_plot(mean_values[i], axs[i], titles[i], thresholds[i], p_thins, rhos)
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(f"{results_path}mean_plots.png")
+
+
+if __name__ == "__main__":
+    """
+    Post-Processing Visual Analysis on results
+    """
+    rho_p_thin_prod, erdos_possible_combinations = helper.gridsearch_parameter_setup()
+    erdos_possible_combinations = [[50, 4, 0.5, 0.5, 1.0]]
+    n, m = rho_p_thin_prod.shape
+    rhos = [2.,3.]
+    p_thins = [0.1,0.5]
+    rho_p_thin_prod = list(itertools.product(rhos, p_thins))
+    n, m = len(rhos), len(p_thins)
+    results_path = '/mnt/c/Users/dseyf/SeniorLabs/Research/Network_Theory/thinned_rescomp/results/'
+    mean_values = get_system_data(p_thins, rhos, results_path)
+    create_plots(mean_values, [3, 10, 10, 10], False, results_path, rhos, p_thins)
