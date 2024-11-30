@@ -17,9 +17,9 @@ def main():
     rho_p_thin_prod, erdos_possible_combinations = helper.gridsearch_parameter_setup()
 
     rho_p_thin_prod = np.array([[2.,0.1]])
+    erdos_possible_combinations = [[50, 4, 0.5, 0.5, 1.0]]
 
     n, m = rho_p_thin_prod.shape
-    print(n, m)
 
     if n == 1 and m == 2:
         rho, p_thin = rho_p_thin_prod[0]
@@ -36,7 +36,6 @@ def main():
         print(RANK)
 
         rho, p_thin = rho_p_thin_prod[RANK]
-        
 
     results_path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/'
     driver.rescomp_parallel_gridsearch_h5(

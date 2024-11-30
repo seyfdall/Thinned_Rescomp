@@ -54,12 +54,12 @@ Classes for writing to and reading from HDF5 Files
 # TODO: Look into virtual dataset slicing
 class HDF5FileHandler:
     def __init__(self, file_path, **kwargs):
-        self.file_path = append_keywords_to_string(file_path, ".h5" **kwargs)
+        self.file_path = append_keywords_to_string(file_path, ending=".h5", **kwargs)
         self.file = None      # HDF5 file handle
 
-        self.attributes = {}  # Global attributes
+        self.attrs = {}  # Global attributes
         for key, value in kwargs.items():
-            self.attributes[key] = value
+            self.attrs[key] = value
     
     def open_file(self, mode='w'):
         """ Opens the HDF5 file in the specified mode. """
@@ -71,14 +71,14 @@ class HDF5FileHandler:
             self.file.close()
             self.file = None
 
-    def add_attribute(self, key, value):
+    def add_attr(self, key, value):
         """ Adds a global attribute to the HDF5 file. """
-        self.attributes[key] = value
+        self.attrs[key] = value
 
-    def save_attributes(self):
+    def save_attrs(self):
         """ Saves global attributes to the HDF5 file. """
         if self.file is not None:
-            for key, value in self.attributes.items():
+            for key, value in self.attrs.items():
                 self.file.attrs[key] = value
 
     def get_group_handler(self, group_name, **kwargs):
@@ -87,17 +87,33 @@ class HDF5FileHandler:
             raise RuntimeError("File must be opened before accessing groups.")
         return GroupIOHandler(self.file, group_name, **kwargs)
 
-    def load_attributes(self):
+    def load_attrs(self):
         """ Loads global attributes from the HDF5 file. """
         if self.file is not None:
-            self.attributes = {key: self.file.attrs[key] for key in self.file.attrs}
+            self.attrs = {key: self.file.attrs[key] for key in self.file.attrs.keys()}
+
+    # Context Manager Methods
+    def __enter__(self):
+        self.open_file()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close_file()
+
 
 
 class GroupIOHandler:
     def __init__(self, h5file, group_name, **kwargs):
+        self.attrs = {}
+        self.datasets = {}
+
         group_name = append_keywords_to_string(group_name, **kwargs)
-        self.group = h5file.require_group(group_name)
-        self.attrs = self.add_attrs(**kwargs)
+        print(group_name, h5file.keys(), group_name in h5file, '\n')
+        if group_name in h5file:
+            self.group = h5file[group_name]
+        else:
+            self.group = h5file.require_group(group_name)
+        self.add_attrs(**kwargs)
 
     def add_datasets(self, **kwargs):
         """ Adds datasets to the group. """
@@ -105,7 +121,7 @@ class GroupIOHandler:
             self.datasets[name] = dataset
 
     def add_attrs(self, **kwargs):
-        """ Adds a attribute to the group. """
+        """ Adds attributes to the group. """
         for name, attr in kwargs.items():
             self.attrs[name] = attr
 
@@ -117,7 +133,9 @@ class GroupIOHandler:
             self.group.create_dataset(name, data=data)
 
         for name, data in self.attrs.items():
-            self.group[name] = data
+            if name in self.group.attrs.keys():
+                del self.group.attrs[name]  # Ensure overwriting without duplicates
+            self.group.attrs[name] = data
 
         self.clear_data()
 

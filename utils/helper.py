@@ -39,7 +39,7 @@ def gridsearch_parameter_setup():
 
     rho_p_thin_prod = np.array(list(itertools.product(rhos, p_thins)))
 
-    erdos_possible_combinations = np.array(list(itertools.product(ns, erdos_renyi_c, gammas, sigmas, alphas)))
+    erdos_possible_combinations = list(itertools.product(ns, erdos_renyi_c, gammas, sigmas, alphas))
     # digraph_possible_combinations = list(itertools.product(ns, random_digraph_c, gammas, sigmas, alphas))
     # geometric_possible_combinations = list(itertools.product(ns, random_geometric_c, gammas, sigmas, alphas))
     # barabasi_possible_combinations = list(itertools.product(ns, barabasi_albert_m, gammas, sigmas, alphas))
