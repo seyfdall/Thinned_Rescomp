@@ -1,11 +1,11 @@
 #!/bin/bash --login
 
-#SBATCH --time=6:00:00   # walltime
-#SBATCH --ntasks=81   # number of processor cores (i.e. tasks)
-#SBATCH --mem-per-cpu=1024M   # memory per CPU core
+#SBATCH --time=48:00:00   # walltime
+#SBATCH --ntasks=171   # number of processor cores (i.e. tasks)
+#SBATCH --mem-per-cpu=8192M   # memory per CPU core
 #SBATCH -J "Reservoir_Gridsearch"   # job name
 #SBATCH --output=./results/mpi_gridsearch_test.txt
-#SBATCH --mail-user=dseyfr99@gmail.com   # email address
+#SBATCH --mail-user=dallin.seyfried@mathematics.byu.edu     # email address
 #SBATCH --mail-type=BEGIN
 #SBATCH --mail-type=END
 #SBATCH --mail-type=FAIL
@@ -20,4 +20,4 @@ cd /nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp
 mamba activate reservoir
 # module load mpi/openmpi-1.10.7_gnu4.8.5
 export MPICC=$(which mpicc)
-mpirun -np 81 python3 rescomp_gridsearch.py
+mpirun -np 171 python3 main.py

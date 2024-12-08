@@ -8,7 +8,7 @@ Import Inhouse Rescomp
 """
 import sys
 import os
-sys.path.insert(0, os.path.abspath('/mnt/c/Users/dseyf/SeniorLabs/Research/Network_Theory/rescomp_package/rescomp/'))
+sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/rescomp_package/rescomp/'))
 import ResComp
 import chaosode
 
@@ -20,6 +20,7 @@ Gridsearch Parameter Setup
 def gridsearch_parameter_setup():
     # Topological Parameters
     ns = [500, 1500, 2500]
+    ns = [500]
     rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
 

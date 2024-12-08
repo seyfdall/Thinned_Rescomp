@@ -77,12 +77,13 @@ if __name__ == "__main__":
     Post-Processing Visual Analysis on results
     """
     rho_p_thin_prod, erdos_possible_combinations = helper.gridsearch_parameter_setup()
-    erdos_possible_combinations = [[50, 4, 0.5, 0.5, 1.0]]
-    n, m = rho_p_thin_prod.shape
-    rhos = [2.,3.]
-    p_thins = [0.1,0.5]
-    rho_p_thin_prod = list(itertools.product(rhos, p_thins))
-    n, m = len(rhos), len(p_thins)
-    results_path = '/mnt/c/Users/dseyf/SeniorLabs/Research/Network_Theory/thinned_rescomp/results/'
+    # erdos_possible_combinations = [[50, 4, 0.5, 0.5, 1.0]]
+    # n, m = rho_p_thin_prod.shape
+    # rhos = [2.,3.]
+    # p_thins = [0.1,0.5]
+    # rho_p_thin_prod = list(itertools.product(rhos, p_thins))
+    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
+    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
+    results_path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/results/'
     mean_values = get_system_data(p_thins, rhos, results_path)
     create_plots(mean_values, [3, 10, 10, 10], False, results_path, rhos, p_thins)
