@@ -88,15 +88,15 @@ def pearson_consistency_metric(states, states_perturbed):
         return aggregated_pearson_correlation_coeff
 
 
-def consistency_analysis(x, y, alpha=1e-9):
-    """ Based on the Appendix: Consistency Analysis walkthrough sent by Tom
+def consistency_analysis(x, y, transient_cutoff=1000, alpha=1e-9):
+    """ Based on the Appendix: Consistency Analysis walkthrough sent by Dr. Lymburn
         Parameters:
         ----------
-        x: ndarray(L,N)
-            States using initial state r0. L = time, n = number of nodes
+        x: ndarray(N,L)
+            States using initial state r0. L = time, N = number of nodes
 
-        y: ndarray(L,N)
-            States using different initial state r0 prime. L = time, n = number of nodes
+        y: ndarray(N,L)
+            States using different initial state r0 prime. L = time, N = number of nodes
 
         Returns:
         --------
@@ -105,15 +105,41 @@ def consistency_analysis(x, y, alpha=1e-9):
         S: ndarray(N)
             Each node's consistency
     """
-    L, N = np.shape(x)
 
-    # Center x and y around 0
-    x = x - np.mean(x)
-    y = y - np.mean(y)
+    def _rescale_states(v):
+        """Rescale states to have 0 mean and unit variance"""
+        mean = np.mean(v, axis=0)
+        std = np.std(v)
+        return (v - mean) / std if np.abs(std) > alpha else v
+    
+    def _transient_cutoff(u,v,eps=1e-3):
+        """Calculate first potential cutoff for transients"""
+        err = np.linalg.norm(u-v, axis=0)
+        cutoffs = np.where(err < eps)[0]
+        if len(cutoffs) == 0:
+            return -1
+        return cutoffs[0]
+    
+    transient_cutoff = _transient_cutoff(x,y)
+
+    # If no cutoff found, then replica states never converged
+    if transient_cutoff == -1:
+        return 0
+    
+    # Cutoff transient states
+    x = x[:,transient_cutoff:]
+    y = y[:,transient_cutoff:]
+
+    N, L = np.shape(x)
+
+    # Rescale x and y
+    x = _rescale_states(x)
+    y = _rescale_states(y)
 
     # Calculate Covariance Matrices
-    Cxx = x.T @ x / L
-    Cyy = y.T @ y / L
+    # Transpose here to ensure N x N Covariance matrix
+    Cxx = x @ x.T / L 
+    Cyy = y @ y.T / L 
 
     # Save space by averaging the two
     C = (Cxx + Cyy) / 2.
@@ -128,17 +154,14 @@ def consistency_analysis(x, y, alpha=1e-9):
 
     # Apply spherical transformation T_o
     T_o = Qxx @ S_inv @ Qxx.T
-    x = T_o @ x.T # TODO: Shifted these to transposes - is this right?
-    y = T_o @ y.T
+    x = T_o @ x
+    y = T_o @ y
 
     # Calculate Cross-variance matrix
     Cxy = x.T @ y / L
     Css = (Cxy + Cxy.T) / 2.
 
-    # Calculate SVD of Css to find principal components of consistency
-    U, S, Vh = np.linalg.svd(Css)
+    # Calculuate Consistency Capacity
+    cap = np.abs(np.trace(Css)) / N
 
-    # Calculate consistency capacity
-    cap = np.sum(S) / N
-
-    return cap, S
+    return cap

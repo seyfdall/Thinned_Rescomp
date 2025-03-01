@@ -202,13 +202,13 @@ Gridsearch Parameter Setup
 def gridsearch_uniform_dict_setup():
     # Topological Parameters
     # ns = [500, 1500, 2500]
-    ns = [1500]
+    ns = [50]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
     # p_thins = [0.1, 0.5]
 
     # Model Specific Parameters
     # erdos_renyi_c = [0.5, 1, 2, 3, 4]
-    erdos_renyi_c = [4]
+    erdos_renyi_c = [4] # Note how we're limiting the degree here - do we do that in the new gridsearch?
     # random_digraph_c = [.5,1,2,3,4]
     # random_geometric_c = [.5,1,2,3,4]
     # barabasi_albert_m = [1,2]
@@ -421,7 +421,7 @@ Main Method
 """
 
 if __name__ == "__main__":
-    rhos, p_thins, erdos_possible_combinations = trevor_params()
+    rhos, p_thins, erdos_possible_combinations = gridsearch_uniform_dict_setup()
 
     n, m = len(rhos), len(p_thins)
 
@@ -445,6 +445,6 @@ if __name__ == "__main__":
         hdf5_file=f'{results_path}results/erdos_results_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5', 
         rho=rho, 
         p_thin=p_thin,
-        tf=21000,
+        tf=1000,
         rank=RANK
     )

@@ -1,10 +1,5 @@
 # The Results folders hold massive amounts of data and therefore can't be uploaded
-results/
-results_fail/
-results_old/
-results_old_divs/
-results_test/
-results_test_old/
+results*/
 _common.py
 _window_overlap_metrics.py
 __pycache__/

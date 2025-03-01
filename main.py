@@ -24,7 +24,7 @@ def main():
         # Setup the parallelization
         SIZE = MPI.COMM_WORLD.Get_size()
         if SIZE != n:
-            print(f"Number of processes expected: {n*m}, received: {SIZE}")
+            print(f"Number of processes expected: {n}, received: {SIZE}")
             return()
         
         # Split the Erdos_c exploration according to RANK
@@ -38,9 +38,9 @@ def main():
         erdos_possible_combinations, 
         rho,
         p_thin,
-        draw_count=10000, 
+        draw_count=100000, 
         hdf5_file_path=f'{results_path}results/erdos_results', 
-        tf=171000
+        tf=1000
     )
 
 

@@ -10,14 +10,14 @@ import helper
 
 
 
-def create_system_plot(values, ax, title, threshold, p_thins=[], rhos=[]):
+def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
     """
     
     """
 
     cmap = 'viridis'
     # norm = matplotlib.colors.Normalize(vmin=0, vmax=np.max(values[np.isfinite(values)]))
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=min([np.max(values[np.isfinite(values)]), threshold]))
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=min([np.max(values[np.isfinite(values)])]))
     sm = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
 
     # Create evenly spaced grid for plotting
@@ -66,7 +66,7 @@ def create_plots(
     for i in range(len(mean_values)):
         if cutoff:
             mean_values[i][mean_values[i] > thresholds[i]] = 0
-        create_system_plot(mean_values[i], axs[i], titles[i], thresholds[i], p_thins, rhos)
+        create_system_plot(mean_values[i], axs[i], titles[i], p_thins=p_thins, rhos=rhos)
 
     plt.tight_layout()
     plt.savefig(f"{results_path}mean_plots.png")

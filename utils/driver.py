@@ -62,10 +62,10 @@ def drive_reservoir_analysis(
     states_1 = res_thinned.internal_state_response(t_train, U_train, r0_1)
 
     # Second replica run
-    r0_2 = np.random.uniform(-1., 1., n)
+    r0_2 = np.random.uniform(0., 1., n) * np.sign(r0_1)
     states_2 = res_thinned.internal_state_response(t_train, U_train, r0_2)
 
-    cap = consistency_analysis(states_1, states_2)[0]
+    cap = consistency_analysis(states_1.T, states_2.T)
 
     # Train the matrix         
     res_thinned.train(t_train, U_train)
@@ -153,10 +153,10 @@ def rescomp_parallel_gridsearch_h5(
                     states_1 = res_thinned.internal_state_response(t_train, U_train, r0_1)
 
                     # Second replica run
-                    r0_2 = np.random.uniform(-1., 1., n)
+                    r0_2 = np.random.uniform(0., 1., n) * np.sign(r0_1)
                     states_2 = res_thinned.internal_state_response(t_train, U_train, r0_2)
 
-                    cap = consistency_analysis(states_1, states_2)[0]
+                    cap = consistency_analysis(states_1.T, states_2.T)
 
                     # Train the matrix         
                     res_thinned.train(t_train, U_train)
@@ -205,7 +205,7 @@ def rescomp_parallel_gridsearch_h5(
                 # Get the current group and save the data
                 group_handler = file_handler.get_group_handler(f"param_set_{j}", n=n, erdos_c=erdos_c, gamma=gamma, sigma=sigma, alpha=alpha)
                 group_handler.add_attrs(**mean_attrs)
-                group_handler.add_datasets(**datasets)
+                # group_handler.add_datasets(**datasets) # Caution: High Storage requirement to store datasets and generally not required for analysis
                 group_handler.save_data()
 
 
@@ -279,7 +279,7 @@ def rescomp_parallel_uniform_gridsearch_h5(
             # Get the current group and save the data
             group_handler = file_handler.get_group_handler(f"param_set_{i}", n=n, erdos_c=erdos_c, gamma=gamma, sigma=sigma, alpha=alpha)
             group_handler.add_attrs(**mean_attrs)
-            group_handler.add_datasets(**datasets)
+            # group_handler.add_datasets(**datasets) # Caution: High Storage requirement to store datasets and generally not required for analysis
             group_handler.save_data()
 
 

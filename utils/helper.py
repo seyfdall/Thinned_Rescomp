@@ -19,14 +19,14 @@ Gridsearch Parameter Setup
 
 def gridsearch_parameter_setup():
     # Topological Parameters
-    ns = [500, 1500, 2500]
-    ns = [500]
+    # ns = [500, 1500, 2500]
+    ns = [50]
     rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
 
 
     # Model Specific Parameters
-    erdos_renyi_c = [0.5, 1, 2, 3, 4]
+    erdos_renyi_c = [4]
     # random_digraph_c = [.5,1,2,3,4]
     # random_geometric_c = [.5,1,2,3,4]
     # barabasi_albert_m = [1,2]
@@ -51,7 +51,7 @@ def gridsearch_parameter_setup():
 
 def gridsearch_uniform_dict_setup():
     # Topological Parameters
-    ns = [500]
+    ns = [50]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
 
     # Model Specific Parameters
