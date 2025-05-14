@@ -1,8 +1,8 @@
 #!/bin/bash --login
 
-#SBATCH --time=19:00:00   # walltime
+#SBATCH --time=24:00:00   # walltime
 #SBATCH --ntasks=171   # number of processor cores (i.e. tasks)
-#SBATCH --mem-per-cpu=4096M   # memory per CPU core
+#SBATCH --mem-per-cpu=2048M   # memory per CPU core
 #SBATCH -J "Reservoir_Gridsearch"   # job name
 #SBATCH --output=./results/mpi_gridsearch_test.txt
 #SBATCH --mail-user=dallin.seyfried@mathematics.byu.edu     # email address

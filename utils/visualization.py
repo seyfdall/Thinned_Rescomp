@@ -3,10 +3,10 @@ import numpy as np
 import itertools
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
-from matplotlib import pyplot as plt
 import matplotlib
 from file_io import get_system_data
 import helper
+from pathlib import Path
 
 
 
@@ -72,18 +72,50 @@ def create_plots(
     plt.savefig(f"{results_path}mean_plots.png")
 
 
+def create_multi_run_plots(
+        path="",
+        rhos=[],
+        p_thins=[],
+        scaling_factor=10
+    ):
+    multi_run_mean_values = []
+    run_names = []
+
+    for item in Path(path).iterdir():
+        if item.is_dir():
+            directory = str(item)
+            multi_run_mean_values.append(get_system_data(p_thins, rhos, directory + '/'))
+            run_names.append('VPT: ' + directory.split('/')[-1])
+
+    # Calculate plot rows and columns
+    run_count = len(multi_run_mean_values)
+    columns = int(np.sqrt(run_count))
+    rows = int(np.ceil(run_count / columns))
+    print(f"Rows: {rows}, Columns: {columns}, run_count: {run_count}")
+
+    # Begin plotting
+    fig, axs = plt.subplots(rows, columns, figsize=(columns*scaling_factor, rows*scaling_factor))
+    i = 0
+    for j in range(rows):
+        for k in range(columns):
+            create_system_plot(multi_run_mean_values[i][0], axs[j,k], run_names[i], p_thins=p_thins, rhos=rhos)
+            i += 1
+            if i >= run_count:
+                break
+
+    plt.tight_layout()
+    plt.savefig(f"{path}vpt_plots.png")
+
+
 if __name__ == "__main__":
     """
     Post-Processing Visual Analysis on results
     """
-    rho_p_thin_prod, erdos_possible_combinations = helper.gridsearch_parameter_setup()
-    # erdos_possible_combinations = [[50, 4, 0.5, 0.5, 1.0]]
-    # n, m = rho_p_thin_prod.shape
-    # rhos = [2.,3.]
-    # p_thins = [0.1,0.5]
-    # rho_p_thin_prod = list(itertools.product(rhos, p_thins))
     rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
     results_path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/results/'
     mean_values = get_system_data(p_thins, rhos, results_path)
     create_plots(mean_values, [3, 10, 10, 10], False, results_path, rhos, p_thins)
+
+    # path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/results_single_param_tests/'
+    # create_multi_run_plots(path, rhos, p_thins)

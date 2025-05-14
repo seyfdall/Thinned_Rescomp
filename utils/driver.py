@@ -2,7 +2,7 @@
 Import Statements
 """
 
-import rescomp as rc
+# import rescomp as rc
 import numpy as np
 from scipy.sparse.linalg import ArpackNoConvergence
 import time
@@ -25,8 +25,8 @@ import chaosode
 """
 Import Helper functions
 """
-from metrics import consistency_analysis, vpt_time, div_metric_tests
-from file_io import HDF5FileHandler, GroupIOHandler, create_rescomp_datasets_template, generate_rescomp_means
+from metrics import consistency_analysis_sphering, vpt_time, div_metric_tests, consistency_analysis_pearson
+from file_io import HDF5FileHandler, create_rescomp_datasets_template, generate_rescomp_means
 from helper import get_orbit
 
 
@@ -62,10 +62,11 @@ def drive_reservoir_analysis(
     states_1 = res_thinned.internal_state_response(t_train, U_train, r0_1)
 
     # Second replica run
-    r0_2 = np.random.uniform(0., 1., n) * np.sign(r0_1)
+    # r0_2 = np.random.uniform(0., 1., n) * np.sign(r0_1)
+    r0_2 = np.random.uniform(-1., 1., n)
     states_2 = res_thinned.internal_state_response(t_train, U_train, r0_2)
 
-    cap = consistency_analysis(states_1.T, states_2.T)
+    cap = consistency_analysis_pearson(states_1.T, states_2.T)
 
     # Train the matrix         
     res_thinned.train(t_train, U_train)
@@ -156,7 +157,7 @@ def rescomp_parallel_gridsearch_h5(
                     r0_2 = np.random.uniform(0., 1., n) * np.sign(r0_1)
                     states_2 = res_thinned.internal_state_response(t_train, U_train, r0_2)
 
-                    cap = consistency_analysis(states_1.T, states_2.T)
+                    cap = consistency_analysis_pearson(states_1.T, states_2.T)
 
                     # Train the matrix         
                     res_thinned.train(t_train, U_train)

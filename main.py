@@ -14,7 +14,8 @@ Main Method to call the Gridsearch
 """
 
 def main():
-    rho_p_thin_prod, erdos_possible_combinations = helper.gridsearch_parameter_setup()
+    # rho_p_thin_prod, erdos_possible_combinations = helper.gridsearch_parameter_setup()
+    rho_p_thin_prod, erdos_possible_combinations = helper.simple_params()
 
     n, m = rho_p_thin_prod.shape
 
@@ -40,7 +41,7 @@ def main():
         p_thin,
         draw_count=100000, 
         hdf5_file_path=f'{results_path}results/erdos_results', 
-        tf=1000
+        tf=1200
     )
 
 
