@@ -15,7 +15,7 @@ Steps for downloading the Github Repo and setting up a working conda environment
 ```bash
 git clone https://github.com/seyfdall/Thinned_Rescomp.git
 cd Thinned_Rescomp
-conda create -n reservoir
+conda env create -f environment.yml
 conda activate reservoir
 conda install openmpi mpi4py jupyter numpy scipy matplotlib
 ```

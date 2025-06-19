@@ -62,9 +62,9 @@ def simple_params():
     rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
 
-    # Great Params (VPT > 1): Sigma: 5e-2, 4e-2, 3e-2, 2e-2
-    gammas = [0.1,0.5,1,2,5,10,25,50] # Good ones: 50, 25, 5
-    sigmas = [2e-2] # Good ones: 5e-2, 4e-2, 3e-2
+    # Great Params (VPT > 1): Sigma: 5e-2, 4e-2, 3e-2, 2e-2, gamma: 50, 
+    gammas = [50] # Good ones: 60, 55, 51, 45, 40, 25, 5
+    sigmas = [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10] # Good ones: 5e-2, 4e-2, 3e-2
     alphas = [1e-8,1e-6,1e-4,1e-2,1] # Good ones: 1e-8, 1e-4, 1e-6
 
     rho_p_thin_prod = np.array(list(itertools.product(rhos, p_thins)))
