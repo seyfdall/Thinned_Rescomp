@@ -1,12 +1,12 @@
-import rescomp as rc
 import numpy as np
-import itertools
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 import matplotlib
-from file_io import get_system_data
-import helper
+from file_io import get_system_data, remove_system_data
+from helper import parse_arguments
 from pathlib import Path
+import argparse
+import os
 
 
 
@@ -107,15 +107,32 @@ def create_multi_run_plots(
     plt.savefig(f"{path}vpt_plots.png")
 
 
-if __name__ == "__main__":
+def visualize(path):
     """
     Post-Processing Visual Analysis on results
     """
     rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
     p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
-    results_path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/results/'
+    mean_values = get_system_data(p_thins, rhos, path)
+    create_plots(mean_values, [3, 10, 10, 10], False, path, rhos, p_thins)
+
+
+if __name__ == "__main__":
+    """
+    Post-Processing Visual Analysis on results
+    """
+    param, param_name, param_set = parse_arguments()
+
+    cwd = os.getcwd()
+    results_path = f'{cwd}/results/{param_name}/{param}/{param_set}/'
+
+    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
+    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
     mean_values = get_system_data(p_thins, rhos, results_path)
     create_plots(mean_values, [3, 10, 10, 10], False, results_path, rhos, p_thins)
+
+    # Delete unnecessary files:
+    remove_system_data(results_path)
 
     # path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/results_single_param_tests/'
     # create_multi_run_plots(path, rhos, p_thins)

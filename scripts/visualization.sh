@@ -1,6 +1,6 @@
 #!/bin/bash --login
 
-#SBATCH --time=0:10:00   # walltime
+#SBATCH --time=0:05:00   # walltime
 #SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
 #SBATCH --mem-per-cpu=1024M   # memory per CPU core
 #SBATCH -J "Reservoir_Visualization"   # job name
@@ -13,4 +13,4 @@
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 cd /nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp
 mamba activate reservoir
-python3 utils/visualization.py
+python3 utils/visualization.py -p $PARAM -p_name $PARAM_NAME -p_set $PARAM_SET

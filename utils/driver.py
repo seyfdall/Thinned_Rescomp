@@ -2,15 +2,11 @@
 Import Statements
 """
 
-# import rescomp as rc
 import numpy as np
 from scipy.sparse.linalg import ArpackNoConvergence
 import time
-# Set seed for reproducibility
-# np.random.seed(1)
 import traceback
 import logging
-import importlib
 
 """
 Import Inhouse Rescomp
@@ -19,13 +15,12 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/rescomp_package/rescomp'))
 import ResComp
-import chaosode
 
 
 """
 Import Helper functions
 """
-from metrics import consistency_analysis_sphering, vpt_time, div_metric_tests, consistency_analysis_pearson
+from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson
 from file_io import HDF5FileHandler, create_rescomp_datasets_template, generate_rescomp_means
 from helper import get_orbit
 

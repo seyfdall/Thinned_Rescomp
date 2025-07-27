@@ -1,46 +1,45 @@
-import itertools
-import numpy as np
 from mpi4py import MPI
+import argparse
+from datetime import date
 
 
 import sys
 import os
-sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/utils/'))
+sys.path.insert(0, os.path.abspath(f'{os.getcwd()}/utils/'))
 import utils.helper as helper
 import utils.driver as driver
+import utils.visualization as viz
 
 """
 Main Method to call the Gridsearch
 """
 
 def main():
-    # rho_p_thin_prod, erdos_possible_combinations = helper.gridsearch_parameter_setup()
-    rho_p_thin_prod, erdos_possible_combinations = helper.simple_params()
+    param, param_name, param_set = helper.parse_arguments()
 
-    n, m = rho_p_thin_prod.shape
+    rho_p_thin_prod, erdos_possible_combinations = helper.generate_params(
+        param=param, 
+        param_name=param_name
+    )
+
+    n, _ = rho_p_thin_prod.shape
 
     if n == 1:
         rho, p_thin = rho_p_thin_prod[0]
     else:
-        # Setup the parallelization
-        SIZE = MPI.COMM_WORLD.Get_size()
-        if SIZE != n:
-            print(f"Number of processes expected: {n}, received: {SIZE}")
-            return()
-        
-        # Split the Erdos_c exploration according to RANK
-        RANK = MPI.COMM_WORLD.Get_rank()
-        print(RANK)
+        job_id_number = int(os.getenv('ID_TO_PROCESS'))
+        print(job_id_number)
+        rho, p_thin = rho_p_thin_prod[job_id_number]
 
-        rho, p_thin = rho_p_thin_prod[RANK]
+    cwd = os.getcwd()
+    results_path = f'{cwd}/results/{param_name}/{param}/{param_set}/'
 
-    results_path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/'
     driver.rescomp_parallel_uniform_gridsearch_h5(
         erdos_possible_combinations, 
         rho,
         p_thin,
         draw_count=100000, 
-        hdf5_file_path=f'{results_path}results/erdos_results', 
+        hdf5_file_path=results_path, 
         tf=1200
     )
 

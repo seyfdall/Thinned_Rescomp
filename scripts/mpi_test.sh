@@ -16,8 +16,8 @@
 export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-cd /nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp
+cd /nobackup/autodelete/usr/seyfdall/network_theory/Thinned_Rescomp
 conda activate reservoir
 module load openmpi/4.1.6-fgmxkt2
 export OMPI_MCA_gds=^shmem2
-mpirun -np 171 python3 main.py
+mpirun -np 171 python3 main.py -p $PARAM -p_name $PARAM_NAME -p_set $PARAM_SET

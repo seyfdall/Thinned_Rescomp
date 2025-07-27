@@ -1,26 +1,12 @@
-import rescomp as rc
 import numpy as np
-from scipy.interpolate import CubicSpline
-from scipy import integrate, sparse
-from scipy.stats import pearsonr
-from scipy.sparse.linalg import eigs, ArpackNoConvergence
-from scipy.sparse import coo_matrix
-import math 
-import networkx as nx
-import itertools
-import csv
-import time
+import os
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 # Set seed for reproducibility
 np.random.seed(1)
 from math import comb
 import h5py
-from mpi4py import MPI
 from glob import glob
-from matplotlib import pyplot as plt
-import matplotlib
-from matplotlib.ticker import MaxNLocator
 
 
 """
@@ -54,6 +40,9 @@ Classes for writing to and reading from HDF5 Files
 # TODO: Look into virtual dataset slicing
 class HDF5FileHandler:
     def __init__(self, file_path, **kwargs):
+        # Ensure filepath exists
+        os.makedirs(file_path, exist_ok=True)
+
         self.file_path = append_keywords_to_string(file_path, ending=".h5", **kwargs)
         self.file = None      # HDF5 file handle
 
@@ -262,9 +251,17 @@ def get_system_data(p_thins, rhos, results_path):
 
     for i, rho in enumerate(rhos):
         for j, p_thin in enumerate(p_thins):
-            hdf5_file = results_path + f"erdos_results_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5"
+            hdf5_file = results_path + f"_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5"
             mean_vpts[i,j], mean_pos_divs[i,j], mean_der_divs[i,j], mean_consistencies[i,j] = get_file_data(hdf5_file=hdf5_file)
             print("VPT", mean_vpts[i,j])
 
     print(f"Overall: {np.max(mean_consistencies), np.min(mean_consistencies)}")
     return mean_vpts, mean_pos_divs, mean_der_divs, mean_consistencies
+
+
+def remove_system_data(results_path):
+    """
+    
+    """
+    for file_path in glob(f'{results_path}*.h5'):
+        os.remove(file_path)

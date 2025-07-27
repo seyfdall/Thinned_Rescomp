@@ -4,3 +4,4 @@ _common.py
 _window_overlap_metrics.py
 __pycache__/
 utils/__pycache__/
+logs/

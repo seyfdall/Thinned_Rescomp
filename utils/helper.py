@@ -1,5 +1,6 @@
 import numpy as np
 import itertools
+import argparse
 
 from scipy.interpolate import CubicSpline
 
@@ -11,6 +12,21 @@ import os
 sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/rescomp_package/rescomp/'))
 import ResComp
 import chaosode
+
+"""
+Read in Parameters
+"""
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-p', '--param', type=float, help="list of parameters to range over")
+    parser.add_argument('-p_name', '--param_name', type=str, help="parameter name to fix")
+    parser.add_argument('-p_set', '--param_set', type=str, help="parameter set name")
+    
+    args = parser.parse_args()
+    return args.param, args.param_name, args.param_set
+
 
 
 """
@@ -70,6 +86,44 @@ def simple_params():
     rho_p_thin_prod = np.array(list(itertools.product(rhos, p_thins)))
 
     erdos_possible_combinations = list(itertools.product(ns, erdos_renyi_c, gammas, sigmas, alphas))
+
+    return rho_p_thin_prod, erdos_possible_combinations
+
+
+def generate_params(param, param_name):
+
+    # Reservoir Computing Parameters
+    parameters = {
+        'n': [50],
+        'rho': [0.1,1.0,1.5,2.0,5.0,10.0,25.0,50.0],
+        'p_thin': [0.0,0.25,0.50,0.75,0.95],
+        'erdos_renyi_c': [4],
+        'gamma': [0.1,0.5,1,2,5,10,25,50],
+        'sigma': [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10],
+        'alpha': [1e-8,1e-6,1e-4,1e-2,1]
+    }
+
+    # Adjust for input
+    parameters[param_name] = [param]
+
+    rho_p_thin_prod = np.array(
+        list(
+            itertools.product(
+                parameters['rho'], 
+                parameters['p_thin']
+            )
+        )
+    )
+
+    erdos_possible_combinations = list(
+        itertools.product(
+            parameters['n'], 
+            parameters['erdos_renyi_c'], 
+            parameters['gamma'], 
+            parameters['sigma'], 
+            parameters['alpha']
+        )
+    )
 
     return rho_p_thin_prod, erdos_possible_combinations
 

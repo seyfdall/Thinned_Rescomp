@@ -1,6 +1,5 @@
 import numpy as np
 from math import comb
-from scipy.stats import pearsonr
 
 """
 Metrics

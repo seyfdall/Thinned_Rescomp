@@ -17,7 +17,6 @@ git clone https://github.com/seyfdall/Thinned_Rescomp.git
 cd Thinned_Rescomp
 conda env create -f environment.yml
 conda activate reservoir
-conda install openmpi mpi4py jupyter numpy scipy matplotlib
 ```
 
 As of December 2024, the Rescomp package does not store the states of the system, so for now we've added slight modifications to the Rescomp Package Rescomp.py file.  
