@@ -13,4 +13,4 @@
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 cd /nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp
 mamba activate reservoir
-python3 utils/visualization.py -p $PARAM -p_name $PARAM_NAME -p_set $PARAM_SET
+python3 utils/visualization.py -p $PARAM_VALUE -p_name $PARAM_NAME -p_set $PARAM_SET

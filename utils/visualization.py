@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 import matplotlib
 from file_io import get_system_data, remove_system_data
-from helper import parse_arguments
+from helper import parse_arguments, load_rho_pthin
 from pathlib import Path
 import argparse
 import os
@@ -53,15 +53,18 @@ def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
 
 def create_plots(
         mean_values=[], 
-        thresholds=[10,10,10,10], 
+        thresholds=[10,10,10,10,10,10], 
+        titles = ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'],
         cutoff=False,
         results_path='/mnt/c/Users/dseyf/SeniorLabs/Research/Network_Theory/thinned_rescomp/results/',
         rhos=[],
         p_thins=[]
     ):
-    fig, axs = plt.subplots(1,4, figsize=(14,3.2))
 
-    titles = ['VPT', 'Div_Pos', 'Div_Der', 'Consistency']
+    num_plots = len(mean_values)
+    num_rows = int(np.sqrt(num_plots))
+    num_cols = int(num_plots / num_rows) + 1
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*3.5,num_rows*3.2))
 
     for i in range(len(mean_values)):
         if cutoff:
@@ -126,13 +129,12 @@ if __name__ == "__main__":
     cwd = os.getcwd()
     results_path = f'{cwd}/results/{param_name}/{param}/{param_set}/'
 
-    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
-    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
+    rhos, p_thins = load_rho_pthin()
     mean_values = get_system_data(p_thins, rhos, results_path)
-    create_plots(mean_values, [3, 10, 10, 10], False, results_path, rhos, p_thins)
+    create_plots(mean_values, [3, 10, 10, 10, 10, 10], ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'], False, results_path, rhos, p_thins)
 
     # Delete unnecessary files:
-    remove_system_data(results_path)
+    # remove_system_data(results_path)
 
     # path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/results_single_param_tests/'
     # create_multi_run_plots(path, rhos, p_thins)

@@ -146,6 +146,8 @@ class GroupIOHandler:
 def create_rescomp_datasets_template(
         div_der = [], 
         div_pos = [], 
+        div_spect = [],
+        div_rank = [],
         vpt = [],
         pred = [],
         err = [],
@@ -156,6 +158,8 @@ def create_rescomp_datasets_template(
     return {
         "div_der": div_der, 
         "div_pos": div_pos,
+        "div_spect": div_spect,
+        "div_rank": div_rank,
         "vpt": vpt,
         "pred": pred,
         "err": err,
@@ -217,6 +221,8 @@ def get_file_data(hdf5_file='results/erdos_results_0.h5'):
         vpt_list = []
         div_pos_list = []
         div_der_list = []
+        div_spect_list = []
+        div_rank_list = []
         consistency_list = []
 
         for group_name in file.keys():
@@ -226,6 +232,8 @@ def get_file_data(hdf5_file='results/erdos_results_0.h5'):
             vpt_list.append(group.attrs['mean_vpt'])
             div_pos_list.append(group.attrs['mean_div_pos'])
             div_der_list.append(group.attrs['mean_div_der'])
+            div_spect_list.append(group.attrs['mean_div_spect'])
+            div_rank_list.append(group.attrs['mean_div_rank'])
             consistency_list.append(group.attrs['mean_consistency_correlation'])
             # print('{}, c: {}, vpt_connected: {}, p_thin: {}, vpt_thinned: {}'.format(group_name, c, vpt_connected, p_thin, vpt_thinned))
         # print('vpt_connected_average: {}, vpt_thinned_average: {}'.format(np.mean(vpt_connected_list), np.mean(vpt_thinned_list)))
@@ -233,11 +241,13 @@ def get_file_data(hdf5_file='results/erdos_results_0.h5'):
         mean_vpt = np.mean(vpt_list)
         mean_div_pos = np.mean(div_pos_list)
         mean_div_der = np.mean(div_der_list)
+        mean_div_spect = np.mean(div_spect_list)
+        mean_div_rank = np.mean(div_rank_list)
         mean_consistency = np.mean(consistency_list)
         print(f"Number of draws successfully made for {hdf5_file}: {len(vpt_list)}")
-        print(f"Mean diversity: {mean_div_pos, mean_div_der}")
+        print(f"Mean diversity: {mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank}")
         
-        return mean_vpt, mean_div_pos, mean_div_der, mean_consistency
+        return mean_vpt, mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank, mean_consistency
     
 
 def get_system_data(p_thins, rhos, results_path):
@@ -247,12 +257,14 @@ def get_system_data(p_thins, rhos, results_path):
     mean_vpts = np.zeros((len(rhos), len(p_thins)))
     mean_pos_divs = np.zeros((len(rhos), len(p_thins)))
     mean_der_divs = np.zeros((len(rhos), len(p_thins)))
+    mean_spect_divs = np.zeros((len(rhos), len(p_thins)))
+    mean_rank_divs = np.zeros((len(rhos), len(p_thins)))
     mean_consistencies = np.zeros((len(rhos), len(p_thins)))
 
     for i, rho in enumerate(rhos):
         for j, p_thin in enumerate(p_thins):
             hdf5_file = results_path + f"_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5"
-            mean_vpts[i,j], mean_pos_divs[i,j], mean_der_divs[i,j], mean_consistencies[i,j] = get_file_data(hdf5_file=hdf5_file)
+            mean_vpts[i,j], mean_pos_divs[i,j], mean_der_divs[i,j], mean_spect_divs[i,j], mean_rank_divs[i,j], mean_consistencies[i,j] = get_file_data(hdf5_file=hdf5_file)
             print("VPT", mean_vpts[i,j])
 
     print(f"Overall: {np.max(mean_consistencies), np.min(mean_consistencies)}")

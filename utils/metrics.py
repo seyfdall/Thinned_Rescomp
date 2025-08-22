@@ -1,5 +1,6 @@
 import numpy as np
 from math import comb
+from scipy.sparse.linalg import svds
 
 """
 Metrics
@@ -39,6 +40,102 @@ def vpt_time(ts, Uts, pre, vpt_tol=5.):
     return vptime
 
 
+def div_spatial(states):
+    """
+    Compute diversity scores of internal reservoir states,
+    matching the element-wise absolute difference method from div_metric_tests.
+
+    Parameters:
+        states (ndarray): Reservoir states, shape (T, n)
+
+    Returns:
+        div_pos (float): Position-based diversity scores
+    """
+    T, n = states.shape
+    abs_states = np.abs(states)
+
+    # Compute pairwise differences with vectors
+    diffs_pos = abs_states[:, :, None] - abs_states[:, None, :]
+
+    # Take upper triangle without diagonal to avoid double counting and self pairs
+    triu_indices = np.triu_indices(n, k=1)
+
+    # Sum over time, average over number of pairs
+    div_pos = np.sum(np.abs(diffs_pos[:, triu_indices[0], triu_indices[1]])) / (T * comb(n, 2))
+
+    return div_pos
+
+
+def div_rate(states):
+    """
+    Compute diversity scores of internal reservoir states' time derivatives,
+    matching the element-wise absolute difference method from div_metric_tests.
+
+    Parameters:
+        states (ndarray): Reservoir states, shape (T, n)
+
+    Returns:
+        div_der (float): Derivative-based diversity scores
+    """
+    T, n = states.shape
+    res_deriv = np.gradient(states, axis=0)
+
+    # Compute abs values
+    abs_deriv = np.abs(res_deriv)
+
+    # Compute pairwise differences with vectors
+    diffs_der = abs_deriv[:, :, None] - abs_deriv[:, None, :]
+
+    # Take upper triangle without diagonal to avoid double counting and self pairs
+    triu_indices = np.triu_indices(n, k=1)
+
+    # Sum over time, average over number of pairs
+    div_der = np.sum(np.abs(diffs_der[:, triu_indices[0], triu_indices[1]])) / (T * comb(n, 2))
+
+    return div_der
+
+
+def div_spectral(states):
+    """
+    Compute diversity scores of internal reservoir states' spectrum,
+    matching the element-wise absolute difference method from div_metric_tests.
+
+    Parameters:
+        states (ndarray): Reservoir states, shape (T, n)
+
+    Returns:
+        div_spect (float): Spectrum based diversity score
+    """
+    s_max = svds(states, k=1, which='LM')[1]  # largest singular value
+    s_min = svds(states, k=1, which='SM')[1]  # smallest singular value
+
+    cond_number_est = s_max[0] / s_min[0]
+
+    # Inverted to avoid ill-conditioning numerical problems
+    div_spect = 1./np.log(cond_number_est)
+
+    return div_spect
+
+
+def div_rank(states):
+    """
+    Compute diversity scores of internal reservoir states' rank,
+    matching the element-wise absolute difference method from div_metric_tests.
+
+    Parameters:
+        states (ndarray): Reservoir states, shape (T, n)
+
+    Returns:
+        div_rank (float): Rank based diversity score
+    """
+    frobenius = np.linalg.norm(states, 'fro')**2
+    two_norm = np.linalg.norm(states)**2
+
+    div_rank = frobenius / two_norm - 1.0
+
+    return div_rank
+
+
 def div_metric_tests(states):
     """
     Compute diversity scores of internal reservoir states and their time derivatives,
@@ -48,27 +145,16 @@ def div_metric_tests(states):
         states (ndarray): Reservoir states, shape (T, n)
 
     Returns:
-        (float, float): Position-based and derivative-based diversity scores
+        (float, float, float, float): diversity scores
     """
-    T, n = states.shape
-    res_deriv = np.gradient(states, axis=0)
-
-    # Compute abs values
-    abs_states = np.abs(states)
-    abs_deriv = np.abs(res_deriv)
-
-    # Compute pairwise differences with vectors
-    diffs_pos = abs_states[:, :, None] - abs_states[:, None, :]
-    diffs_der = abs_deriv[:, :, None] - abs_deriv[:, None, :]
-
-    # Take upper triangle without diagonal to avoid double counting and self pairs
-    triu_indices = np.triu_indices(n, k=1)
 
     # Sum over time, average over number of pairs
-    div_pos = np.sum(np.abs(diffs_pos[:, triu_indices[0], triu_indices[1]])) / (T * comb(n, 2))
-    div_der = np.sum(np.abs(diffs_der[:, triu_indices[0], triu_indices[1]])) / (T * comb(n, 2))
+    div_pos = div_spatial(states)
+    div_der = div_rate(states)
+    div_spect = div_spectral(states)
+    div_rank = div_rank(states)
 
-    return div_pos, div_der
+    return div_pos, div_der, div_spect, div_rank
 
 
 def consistency_analysis_sphering(x, y, max_cutoff=8000, alpha=1e-9):

@@ -90,13 +90,28 @@ def simple_params():
     return rho_p_thin_prod, erdos_possible_combinations
 
 
+# TODO: Show Diversity/Consistency helps VPT
+# TODO: Try visualizations of rho to p_thin=0, diversity to p_thin=0, and consistency to p_thin=0
+# TODO: Then create full blown regular plots to show how to create more diversity to create more VPT
+# TODO: See example 1 / 2 in the current paper
+# TODO: Try all diversity ranks including Trevor's new one
+# TODO: Update parameters to be a csv file (param_set_1, etc.)
+
+def load_rho_pthin():
+    rhos = [0.1,1.0,1.5,2.0,5.0,10.0,25.0,50.0]
+    p_thins = [0.0,0.25,0.50,0.75,0.95]
+    return rhos, p_thins
+
+
 def generate_params(param, param_name):
+
+    rhos, p_thins = load_rho_pthin()
 
     # Reservoir Computing Parameters
     parameters = {
         'n': [50],
-        'rho': [0.1,1.0,1.5,2.0,5.0,10.0,25.0,50.0],
-        'p_thin': [0.0,0.25,0.50,0.75,0.95],
+        'rho': rhos,
+        'p_thin': p_thins,
         'erdos_renyi_c': [4],
         'gamma': [0.1,0.5,1,2,5,10,25,50],
         'sigma': [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10],

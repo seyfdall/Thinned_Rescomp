@@ -68,6 +68,8 @@ The scripts will also need to be updated to your current system (change pathing,
 * scripts/mpi_test.sh
 * scripts/visualization.sh
 
+May need to occassionally redownload this or move it off the autodelete system.
+
 ## Usage
 Once this is done, you should be good to run it on the supercomputer.  We have slurm scripts setup in the scripts/ directory to use.
 To run the test script, simply type the following in the terminal:
