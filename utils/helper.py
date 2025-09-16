@@ -1,6 +1,7 @@
 import numpy as np
 import itertools
 import argparse
+import pandas as pd
 
 from scipy.interpolate import CubicSpline
 
@@ -9,7 +10,7 @@ Import Inhouse Rescomp
 """
 import sys
 import os
-sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/rescomp_package/rescomp/'))
+sys.path.insert(0, os.path.abspath('/home/seyfdall/network_theory/rescomp/rescomp'))
 import ResComp
 import chaosode
 
@@ -33,90 +34,26 @@ def parse_arguments():
 Gridsearch Parameter Setup
 """
 
-def gridsearch_parameter_setup():
-    # Topological Parameters
-    # ns = [500, 1500, 2500]
-    ns = [500]
-    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
-    # rhos = np.arange(0.1,1,0.1)
-    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
-
-
-    # Model Specific Parameters
-    erdos_renyi_c = [4]
-    # random_digraph_c = [.5,1,2,3,4]
-    # random_geometric_c = [.5,1,2,3,4]
-    # barabasi_albert_m = [1,2]
-    # watts_strogatz_k = [2,4]
-    # watt_strogatz_q = [.01,.05,.1]
-
-    # Reservoir Computing Parameters
-    gammas = [0.1,0.5,1,2,5,10,25,50]
-    sigmas = [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10]
-    alphas = [1e-8,1e-6,1e-4,1e-2,1]
-
-    rho_p_thin_prod = np.array(list(itertools.product(rhos, p_thins)))
-
-    erdos_possible_combinations = list(itertools.product(ns, erdos_renyi_c, gammas, sigmas, alphas))
-    # digraph_possible_combinations = list(itertools.product(ns, random_digraph_c, gammas, sigmas, alphas))
-    # geometric_possible_combinations = list(itertools.product(ns, random_geometric_c, gammas, sigmas, alphas))
-    # barabasi_possible_combinations = list(itertools.product(ns, barabasi_albert_m, gammas, sigmas, alphas))
-    # strogatz_possible_combinations = list(itertools.product(ns, watts_strogatz_k, watt_strogatz_q, gammas, sigmas, alphas))
-
-    return rho_p_thin_prod, erdos_possible_combinations #, digraph_possible_combinations, geometric_possible_combinations, barabasi_possible_combinations, strogatz_possible_combinations
-
-
-def simple_params():
-    # Topological Parameters
-    ns = [50]
-
-    # Model Specific Parameters
-    erdos_renyi_c = [4]
-
-    # Reservoir Computing Parameters
-
-    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
-    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
-
-    # Great Params (VPT > 1): Sigma: 5e-2, 4e-2, 3e-2, 2e-2, gamma: 50, 
-    gammas = [50] # Good ones: 60, 55, 51, 45, 40, 25, 5
-    sigmas = [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10] # Good ones: 5e-2, 4e-2, 3e-2
-    alphas = [1e-8,1e-6,1e-4,1e-2,1] # Good ones: 1e-8, 1e-4, 1e-6
-
-    rho_p_thin_prod = np.array(list(itertools.product(rhos, p_thins)))
-
-    erdos_possible_combinations = list(itertools.product(ns, erdos_renyi_c, gammas, sigmas, alphas))
-
-    return rho_p_thin_prod, erdos_possible_combinations
-
-
-# TODO: Show Diversity/Consistency helps VPT
-# TODO: Try visualizations of rho to p_thin=0, diversity to p_thin=0, and consistency to p_thin=0
-# TODO: Then create full blown regular plots to show how to create more diversity to create more VPT
-# TODO: See example 1 / 2 in the current paper
-# TODO: Try all diversity ranks including Trevor's new one
-# TODO: Update parameters to be a csv file (param_set_1, etc.)
-
 def load_rho_pthin():
     rhos = [0.1,1.0,1.5,2.0,5.0,10.0,25.0,50.0]
     p_thins = [0.0,0.25,0.50,0.75,0.95]
     return rhos, p_thins
 
 
-def generate_params(param, param_name):
+def generate_params(param, param_name, param_set):
 
     rhos, p_thins = load_rho_pthin()
 
+    # Great Params (VPT > 1): Sigma: 5e-2, 4e-2, 3e-2, 2e-2, gamma: 50, 
+    # Good gammas: 60, 55, 51, 45, 40, 25, 5
+    # Good sigmas: 5e-2, 4e-2, 3e-2
+    # Good alphas: 1e-8, 1e-4, 1e-6
+
     # Reservoir Computing Parameters
-    parameters = {
-        'n': [50],
-        'rho': rhos,
-        'p_thin': p_thins,
-        'erdos_renyi_c': [4],
-        'gamma': [0.1,0.5,1,2,5,10,25,50],
-        'sigma': [1e-3,5e-3,1e-2,5e-2,.14,.4,.7,1,10],
-        'alpha': [1e-8,1e-6,1e-4,1e-2,1]
-    }
+    df = pd.read_csv(f'./utils/param_sets/{param_set}')
+    param_dict = {col: df[col].dropna().tolist() for col in df.columns}
+    rhos_p_thin_dict = {'rho': rhos, 'p_thin': p_thins}
+    parameters = param_dict | rhos_p_thin_dict
 
     # Adjust for input
     parameters[param_name] = [param]
@@ -130,7 +67,7 @@ def generate_params(param, param_name):
         )
     )
 
-    erdos_possible_combinations = list(
+    possible_combinations = list(
         itertools.product(
             parameters['n'], 
             parameters['erdos_renyi_c'], 
@@ -140,7 +77,7 @@ def generate_params(param, param_name):
         )
     )
 
-    return rho_p_thin_prod, erdos_possible_combinations
+    return rho_p_thin_prod, possible_combinations
 
 
 """
