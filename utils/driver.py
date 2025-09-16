@@ -7,22 +7,40 @@ from scipy.sparse.linalg import ArpackNoConvergence
 import time
 import traceback
 import logging
+import sys
+import os
+import signal
 
 """
 Import Inhouse Rescomp
 """
-import sys
-import os
-sys.path.insert(0, os.path.abspath('/nobackup/autodelete/usr/seyfdall/network_theory/rescomp_package/rescomp'))
+sys.path.insert(0, os.path.abspath('/home/seyfdall/network_theory/rescomp/rescomp'))
 import ResComp
-
-
 """
 Import Helper functions
 """
 from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson
 from file_io import HDF5FileHandler, create_rescomp_datasets_template, generate_rescomp_means
 from helper import get_orbit
+
+
+# Global flag to stop gracefully
+stop_now = False
+
+def handle_sigterm(signum, frame):
+    global stop_now
+    print("Received SIGTERM (job cancelled). Cleaning up...")
+    stop_now = True
+
+# def handle_usr1(signum, frame):
+#     global stop_now
+#     print("Received SIGUSR1 (timeout warning). Preparing to stop...")
+#     stop_now = True
+
+
+# Register signal handlers
+signal.signal(signal.SIGTERM, handle_sigterm)  # scancel
+# signal.signal(signal.SIGUSR1, handle_usr1)     # timeout warning (needs #SBATCH --signal)
 
 
 def drive_reservoir_analysis(
@@ -49,6 +67,9 @@ def drive_reservoir_analysis(
     if mean_degree < 0.0:
         mean_degree = 0.0
     
+    # TODO: Run Correlation tests with diversities with VPT try averaging around p_thin squishing things down
+    # TODO: Try thinning based on magnitude (focusing on masking the smaller weights)
+    # TODO: Try thinning the lower triangular portion
     res_thinned = ResComp.ResComp(res_sz=n, mean_degree=mean_degree, 
                                 ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
                                 gamma=gamma, map_initial='activ_f')       
@@ -120,7 +141,7 @@ def rescomp_parallel_uniform_gridsearch_h5(
     # Parameters
     t0 = time.time()
     # Create a new file_handler
-    file_handler = HDF5FileHandler(hdf5_file_path, rho=rho, p_thin=p_thin) # , network="erdos_c", network_param=erdos_c, gamma=gamma, sigma=sigma, alpha=alpha)
+    file_handler = HDF5FileHandler(hdf5_file_path, rho=rho, p_thin=p_thin)
     with file_handler:
 
         # Run the reservoir on this parameter set draw_count number of times
@@ -128,8 +149,8 @@ def rescomp_parallel_uniform_gridsearch_h5(
 
             # Check time and break if out of time
             t1 = time.time()
-            if t1 - t0 > tf:
-                print("Break in Combo")
+            if (t1 - t0 > tf) or stop_now:
+                print("Break in Combo. Signal received?", stop_now)
                 file_handler.save_attrs()
                 file_handler.close_file()
                 return
@@ -143,9 +164,11 @@ def rescomp_parallel_uniform_gridsearch_h5(
 
             except ArpackNoConvergence as e: # Occasionally sparse linalg eigs isn't able to converge
                 i = i-1
+                tb = e.__traceback__
                 print("ArpackNoConvergence Error Caught")
-                print("Converged eigenvalues:", e.eigenvalues)
-                print("Converged eigenvectors shape:", None if e.eigenvectors is None else e.eigenvectors.shape)
+                print("\nFormatted Traceback:")
+                traceback.print_tb(tb)
+                print(f"Exception message: {e.args[0]}")
                 continue
             except OverflowError: # Solving for W_out hits overflow errors with high spectral radius and high p_thin
                 i = i-1
@@ -164,7 +187,7 @@ def rescomp_parallel_uniform_gridsearch_h5(
                 continue
 
             # Get the current group and save the data
-            group_handler = file_handler.get_group_handler(f"param_set_{i}", n=n, erdos_c=erdos_c, gamma=gamma, sigma=sigma, alpha=alpha)
+            group_handler = file_handler.get_group_handler(f"set_{i}", n=n, erdos_c=erdos_c, gamma=gamma, sigma=sigma, alpha=alpha)
             group_handler.add_attrs(**mean_attrs)
             # group_handler.add_datasets(**datasets) # Caution: High Storage requirement to store datasets and generally not required for analysis
             group_handler.save_data()

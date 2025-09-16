@@ -268,7 +268,7 @@ def get_system_data(p_thins, rhos, results_path):
             print("VPT", mean_vpts[i,j])
 
     print(f"Overall: {np.max(mean_consistencies), np.min(mean_consistencies)}")
-    return mean_vpts, mean_pos_divs, mean_der_divs, mean_consistencies
+    return mean_vpts, mean_pos_divs, mean_der_divs, mean_spect_divs, mean_rank_divs, mean_consistencies
 
 
 def remove_system_data(results_path):

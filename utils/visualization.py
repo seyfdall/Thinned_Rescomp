@@ -52,14 +52,18 @@ def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
 
 
 def create_plots(
-        mean_values=[], 
-        thresholds=[10,10,10,10,10,10], 
-        titles = ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'],
-        cutoff=False,
-        results_path='/mnt/c/Users/dseyf/SeniorLabs/Research/Network_Theory/thinned_rescomp/results/',
+        mean_values, 
+        thresholds, 
+        titles,
+        cutoff,
+        param_name,
+        param,
+        param_set,
         rhos=[],
         p_thins=[]
     ):
+    save_path = f'/home/seyfdall/network_theory/Thinned_Rescomp/results/{param_name}/{param}/{param_set}/'
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     num_plots = len(mean_values)
     num_rows = int(np.sqrt(num_plots))
@@ -69,55 +73,11 @@ def create_plots(
     for i in range(len(mean_values)):
         if cutoff:
             mean_values[i][mean_values[i] > thresholds[i]] = 0
-        create_system_plot(mean_values[i], axs[i], titles[i], p_thins=p_thins, rhos=rhos)
+        create_system_plot(mean_values[i], axs.flatten()[i], titles[i], p_thins=p_thins, rhos=rhos)
 
+    plt.suptitle(f'{param_name}: {param}, {param_set}')
     plt.tight_layout()
-    plt.savefig(f"{results_path}mean_plots.png")
-
-
-def create_multi_run_plots(
-        path="",
-        rhos=[],
-        p_thins=[],
-        scaling_factor=10
-    ):
-    multi_run_mean_values = []
-    run_names = []
-
-    for item in Path(path).iterdir():
-        if item.is_dir():
-            directory = str(item)
-            multi_run_mean_values.append(get_system_data(p_thins, rhos, directory + '/'))
-            run_names.append('VPT: ' + directory.split('/')[-1])
-
-    # Calculate plot rows and columns
-    run_count = len(multi_run_mean_values)
-    columns = int(np.sqrt(run_count))
-    rows = int(np.ceil(run_count / columns))
-    print(f"Rows: {rows}, Columns: {columns}, run_count: {run_count}")
-
-    # Begin plotting
-    fig, axs = plt.subplots(rows, columns, figsize=(columns*scaling_factor, rows*scaling_factor))
-    i = 0
-    for j in range(rows):
-        for k in range(columns):
-            create_system_plot(multi_run_mean_values[i][0], axs[j,k], run_names[i], p_thins=p_thins, rhos=rhos)
-            i += 1
-            if i >= run_count:
-                break
-
-    plt.tight_layout()
-    plt.savefig(f"{path}vpt_plots.png")
-
-
-def visualize(path):
-    """
-    Post-Processing Visual Analysis on results
-    """
-    rhos = [0.1,0.9,1.0,1.1,2.0,5.0,10.0,25.0,50.0]
-    p_thins = np.concatenate((np.arange(0, 0.8, 0.1), np.arange(0.8, 1.01, 0.02)))
-    mean_values = get_system_data(p_thins, rhos, path)
-    create_plots(mean_values, [3, 10, 10, 10], False, path, rhos, p_thins)
+    plt.savefig(f"{save_path}mean_plots.png")
 
 
 if __name__ == "__main__":
@@ -126,12 +86,21 @@ if __name__ == "__main__":
     """
     param, param_name, param_set = parse_arguments()
 
-    cwd = os.getcwd()
-    results_path = f'{cwd}/results/{param_name}/{param}/{param_set}/'
+    results_path = f'/nobackup/autodelete/usr/seyfdall/network_theory/Thinned_Rescomp/results/{param_name}/{param}/{param_set}/'
 
     rhos, p_thins = load_rho_pthin()
     mean_values = get_system_data(p_thins, rhos, results_path)
-    create_plots(mean_values, [3, 10, 10, 10, 10, 10], ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'], False, results_path, rhos, p_thins)
+    create_plots(
+        mean_values, 
+        [3, 10, 10, 10, 10, 10], 
+        ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'], 
+        False, 
+        param_name,
+        param,
+        param_set,
+        rhos, 
+        p_thins
+    )
 
     # Delete unnecessary files:
     # remove_system_data(results_path)
