@@ -106,18 +106,15 @@ def div_spectral(states):
     Returns:
         div_spect (float): Spectrum based diversity score
     """
-    s_max = svds(states, k=1, which='LM')[1]  # largest singular value
-    s_min = svds(states, k=1, which='SM')[1]  # smallest singular value
-
-    cond_number_est = s_max[0] / s_min[0]
+    cond_number = np.linalg.cond(states)
 
     # Inverted to avoid ill-conditioning numerical problems
-    div_spect = 1./np.log(cond_number_est)
+    div_spect = 1./np.log(cond_number)
 
     return div_spect
 
 
-def div_rank(states):
+def div_norm(states):
     """
     Compute diversity scores of internal reservoir states' rank,
     matching the element-wise absolute difference method from div_metric_tests.
@@ -129,7 +126,7 @@ def div_rank(states):
         div_rank (float): Rank based diversity score
     """
     frobenius = np.linalg.norm(states, 'fro')**2
-    two_norm = np.linalg.norm(states)**2
+    two_norm = np.linalg.norm(states, 2)**2
 
     div_rank = frobenius / two_norm - 1.0
 
@@ -152,7 +149,7 @@ def div_metric_tests(states):
     div_pos = div_spatial(states)
     div_der = div_rate(states)
     div_spect = div_spectral(states)
-    div_rank = div_rank(states)
+    div_rank = div_norm(states)
 
     return div_pos, div_der, div_spect, div_rank
 
