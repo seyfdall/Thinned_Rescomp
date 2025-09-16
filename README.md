@@ -58,34 +58,36 @@ def update_tikhanov_factors(self, t, U):
 ```
 
 Most of the filepaths from the import statements will also need to be changed to fit your current system.  The main ones will be in:
-* utils/driver.py (path to rescomp package)
-* utils/helper.py (path to rescomp package)
-* utils/visualization.py (results_path variable)
-* main.py (path to utils folder, and results_path variable)
+* `utils/driver.py` (path to rescomp package)
+* `utils/helper.py` (path to rescomp package)
+* `utils/visualization.py` (results_path and save_path variables)
+* `main.py` (path to utils folder, and results_path variable)
 
 The scripts will also need to be updated to your current system (change pathing, email, processor #, etc.)
-* scripts/mpi_search.sh
-* scripts/mpi_test.sh
-* scripts/visualization.sh
+* `scripts/simulations_array.sh`
+* `scripts/visualization.sh`
 
 May need to occassionally redownload this or move it off the autodelete system.
 
 ## Usage
 Once this is done, you should be good to run it on the supercomputer.  We have slurm scripts setup in the scripts/ directory to use.
-To run the test script, simply type the following in the terminal:
+To run the gridsearch script, simply type the following in the terminal:
 
 ```bash
-sbatch scripts/mpitest.sh
+sh scripts/submit.sh -s
 ```
+
+This will take the values from `scripts/params.txt` and run a new gridsearch for each of the given lines.
 
 This should generate a decent amount of initial test data to run the visualization script on to see what you're working with:
 
 ```bash
-sbatch scripts/visualization.sh
+sh scripts/submit.sh -v
 ```
 
-Preliminary results will be stored in a results/ folder in the directory.  Once that is working run the more major script:
-scripts/mpi_search.sh
+Preliminary results will be stored in a results folder.
+
+To create new parameter sets, look over some of the functionality available in `scratch.ipynb`. We store our parameter sets in `utils/param_sets/` as csv files. Feel free to create more and run gridsearches on them by updating `scripts/params.txt`.
 
 For more information see:
 * https://acme.byu.edu/00000180-6d94-d2d1-ade4-6ff4c7cf0001/mpi (for a decent walkthrough of mpi basic principles)
