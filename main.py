@@ -25,8 +25,9 @@ def main():
         job_id_number = int(os.getenv('ID_TO_PROCESS'))
         print(job_id_number)
         rho, p_thin = rho_p_thin_prod[job_id_number]
-
-    results_path = f'/nobackup/autodelete/usr/seyfdall/network_theory/Thinned_Rescomp/results/{param_name}/{param}/{param_set}/'
+        
+    home = os.path.expanduser("~")
+    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/'
 
     driver.rescomp_parallel_uniform_gridsearch_h5(
         erdos_possible_combinations, 
