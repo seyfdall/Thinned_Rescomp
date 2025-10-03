@@ -3,7 +3,7 @@
 #SBATCH --output=logs/job_%A_%a.out
 #SBATCH --error=logs/job_%A_%a.err
 #SBATCH --time=06:00:00
-#SBATCH --mem=2G
+#SBATCH --mem=30G
 #SBATCH --mail-user=dallin.seyfried@mathematics.byu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --cpus-per-task=1

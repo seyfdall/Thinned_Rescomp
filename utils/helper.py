@@ -50,10 +50,13 @@ def generate_params(param, param_name, param_set):
     # Good alphas: 1e-8, 1e-4, 1e-6
 
     # Reservoir Computing Parameters
-    df = pd.read_csv(f'./utils/param_sets/{param_set}')
+    df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
     param_dict = {col: df[col].dropna().tolist() for col in df.columns}
     rhos_p_thin_dict = {'rho': rhos, 'p_thin': p_thins}
     parameters = param_dict | rhos_p_thin_dict
+
+    # Ensure ints are ints
+    parameters['n'] = [int(i) for i in parameters['n']]
 
     # Adjust for input
     parameters[param_name] = [param]
