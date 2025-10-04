@@ -68,8 +68,6 @@ def drive_reservoir_analysis(
         mean_degree = 0.0
     
     # TODO: Run Correlation tests with diversities with VPT try averaging around p_thin squishing things down
-    # TODO: Try thinning based on magnitude (focusing on masking the smaller weights)
-    # TODO: Try thinning the lower triangular portion
     res_thinned = ResComp.ResComp(res_sz=n, mean_degree=mean_degree, 
                                 ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
                                 gamma=gamma, map_initial='activ_f')       

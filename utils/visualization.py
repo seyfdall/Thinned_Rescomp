@@ -7,7 +7,8 @@ from helper import parse_arguments, load_rho_pthin
 from pathlib import Path
 import argparse
 import os
-
+import pandas as pd
+import seaborn as sns
 
 
 def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
@@ -51,6 +52,26 @@ def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
     plt.colorbar(mappable=sm, ax=ax)
 
 
+def create_correlation_plots(mean_values, ax):
+    metrics = {
+        "VPT": mean_values[0],
+        "Div_Pos": mean_values[1],
+        "Div_Der": mean_values[2],
+        "Div_Spect": mean_values[3],
+        "Div_Rank": mean_values[4],
+        "Consistency": mean_values[5]
+    }
+
+    # Flatten and build dataframe
+    df = pd.DataFrame({name: mat.flatten() for name, mat in metrics.items()})
+
+    # Global correlation matrix
+    global_corr = df.corr()
+
+    sns.heatmap(global_corr, annot=True, cmap="coolwarm", center=0, ax=ax)
+    plt.title("Global Correlation Across All Metrics")
+
+
 def create_plots(
         mean_values, 
         thresholds, 
@@ -79,6 +100,13 @@ def create_plots(
     plt.tight_layout()
     plt.savefig(f"{save_path}mean_plots.png")
 
+
+    fig, axs = plt.subplots(len(rhos), len(p_thins), figsize=(len(p_thins)*3.5, len(rhos)*3.2))
+
+    create_correlation_plots(mean_values, axs.flatten()[0])
+    plt.suptitle(f'{param_name}: {param}, {param_set}')
+    plt.tight_layout()
+    plt.savefig(f"{save_path}correlation_plots.png")
 
 if __name__ == "__main__":
     """
