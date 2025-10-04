@@ -52,7 +52,7 @@ def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
     plt.colorbar(mappable=sm, ax=ax)
 
 
-def create_correlation_plots(mean_values, ax):
+def create_correlation_plots(mean_values, save_path, rhos, p_thins):
     metrics = {
         "VPT": mean_values[0],
         "Div_Pos": mean_values[1],
@@ -68,8 +68,43 @@ def create_correlation_plots(mean_values, ax):
     # Global correlation matrix
     global_corr = df.corr()
 
-    sns.heatmap(global_corr, annot=True, cmap="coolwarm", center=0, ax=ax)
+    plt.figure(figsize=(6,4))
+    sns.heatmap(global_corr, annot=True, cmap="coolwarm", center=0)
     plt.title("Global Correlation Across All Metrics")
+    plt.tight_layout()
+    plt.savefig(f"{save_path}global_correlation_plot.png")
+
+    # Row Correlations (along rho)
+    num_plots = len(rhos)
+    num_rows = int(np.sqrt(num_plots))
+    num_cols = int(num_plots / num_rows) + 1
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*5,num_rows*4))
+    axes = axs.flatten()
+
+    for i in range(next(iter(metrics.values())).shape[0]):  # iterate rows
+        row_df = pd.DataFrame({name: mat[i,:] for name, mat in metrics.items()})
+        ax = axes[i]
+        sns.heatmap(row_df.corr(), annot=True, cmap="coolwarm", center=0, ax=ax)
+        ax.set_title(f"Rho: {rhos[i]} Correlations")
+    plt.tight_layout()
+    plt.savefig(f"{save_path}rho_correlation_plot.png")
+
+
+    # Column Correlations (along p_thin)
+    num_plots = len(p_thins)
+    num_rows = int(np.sqrt(num_plots))
+    num_cols = int(num_plots / num_rows) + 1
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*5,num_rows*4))
+    axes = axs.flatten()
+
+    for j in range(next(iter(metrics.values())).shape[1]):  # iterate rows
+        row_df = pd.DataFrame({name: mat[:,j] for name, mat in metrics.items()})
+        ax = axes[j]
+        sns.heatmap(row_df.corr(), annot=True, cmap="coolwarm", center=0, ax=ax)
+        ax.set_title(f"P_thin: {p_thins[j]} Correlations")
+    plt.tight_layout()
+    plt.savefig(f"{save_path}p_thins_correlation_plot.png")
+    
 
 
 def create_plots(
@@ -100,13 +135,7 @@ def create_plots(
     plt.tight_layout()
     plt.savefig(f"{save_path}mean_plots.png")
 
-
-    fig, axs = plt.subplots(len(rhos), len(p_thins), figsize=(len(p_thins)*3.5, len(rhos)*3.2))
-
-    create_correlation_plots(mean_values, axs.flatten()[0])
-    plt.suptitle(f'{param_name}: {param}, {param_set}')
-    plt.tight_layout()
-    plt.savefig(f"{save_path}correlation_plots.png")
+    create_correlation_plots(mean_values, save_path, rhos, p_thins)
 
 if __name__ == "__main__":
     """
