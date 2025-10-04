@@ -62,7 +62,7 @@ def create_plots(
         rhos=[],
         p_thins=[]
     ):
-    save_path = f'/home/seyfdall/network_theory/Thinned_Rescomp/results/{param_name}/{param}/{param_set}/'
+    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     num_plots = len(mean_values)
@@ -86,7 +86,8 @@ if __name__ == "__main__":
     """
     param, param_name, param_set = parse_arguments()
 
-    results_path = f'/nobackup/autodelete/usr/seyfdall/network_theory/Thinned_Rescomp/results/{param_name}/{param}/{param_set}/'
+    home = os.path.expanduser("~")
+    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/'
 
     rhos, p_thins = load_rho_pthin()
     mean_values = get_system_data(p_thins, rhos, results_path)

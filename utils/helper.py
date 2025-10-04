@@ -10,7 +10,7 @@ Import Inhouse Rescomp
 """
 import sys
 import os
-sys.path.insert(0, os.path.abspath('/home/seyfdall/network_theory/rescomp/rescomp'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..", "rescomp", "rescomp")))
 import ResComp
 import chaosode
 
