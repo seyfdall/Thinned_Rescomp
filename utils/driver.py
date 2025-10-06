@@ -67,7 +67,6 @@ def drive_reservoir_analysis(
     if mean_degree < 0.0:
         mean_degree = 0.0
     
-    # TODO: Run Correlation tests with diversities with VPT try averaging around p_thin squishing things down
     res_thinned = ResComp.ResComp(res_sz=n, mean_degree=mean_degree, 
                                 ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
                                 gamma=gamma, map_initial='activ_f')       
@@ -86,21 +85,17 @@ def drive_reservoir_analysis(
 
     cap = consistency_analysis_pearson(states_1.T, states_2.T)
 
-    print("Train")
-    # Train the matrix         
+    print("Train")       
     res_thinned.train(t_train, U_train)
 
     print("Forecast and predict")
-    # Forecast and compute the vpt along with diversity metrics
     U_pred = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)[0]
     error = np.linalg.norm(U_test - U_pred, axis=1)
     vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
     divs = div_metric_tests(res_thinned.states)
 
-    # t_curr = time_comp(t_curr, f"Predict, vpt, divs thinned")
     print("Divs:", divs)
 
-    # Store results
     datasets['div_pos'].append(divs[0])
     datasets['div_der'].append(divs[1])
     datasets['div_spect'].append(divs[2])

@@ -52,7 +52,7 @@ def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
     plt.colorbar(mappable=sm, ax=ax)
 
 
-def create_correlation_plots(mean_values, save_path, rhos, p_thins):
+def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pearson"):
     metrics = {
         "VPT": mean_values[0],
         "Div_Pos": mean_values[1],
@@ -66,13 +66,13 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins):
     df = pd.DataFrame({name: mat.flatten() for name, mat in metrics.items()})
 
     # Global correlation matrix
-    global_corr = df.corr()
+    global_corr = df.corr(method)
 
     plt.figure(figsize=(6,4))
     sns.heatmap(global_corr, annot=True, cmap="coolwarm", center=0)
     plt.title("Global Correlation Across All Metrics")
     plt.tight_layout()
-    plt.savefig(f"{save_path}global_correlation_plot.png")
+    plt.savefig(f"{save_path}{method}_global_correlation_plot.png")
 
     # Row Correlations (along rho)
     num_plots = len(rhos)
@@ -84,10 +84,10 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins):
     for i in range(next(iter(metrics.values())).shape[0]):  # iterate rows
         row_df = pd.DataFrame({name: mat[i,:] for name, mat in metrics.items()})
         ax = axes[i]
-        sns.heatmap(row_df.corr(), annot=True, cmap="coolwarm", center=0, ax=ax)
+        sns.heatmap(row_df.corr(method), annot=True, cmap="coolwarm", center=0, ax=ax)
         ax.set_title(f"Rho: {rhos[i]} Correlations")
     plt.tight_layout()
-    plt.savefig(f"{save_path}rho_correlation_plot.png")
+    plt.savefig(f"{save_path}{method}_rho_correlation_plot.png")
 
 
     # Column Correlations (along p_thin)
@@ -100,10 +100,10 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins):
     for j in range(next(iter(metrics.values())).shape[1]):  # iterate rows
         row_df = pd.DataFrame({name: mat[:,j] for name, mat in metrics.items()})
         ax = axes[j]
-        sns.heatmap(row_df.corr(), annot=True, cmap="coolwarm", center=0, ax=ax)
+        sns.heatmap(row_df.corr(method), annot=True, cmap="coolwarm", center=0, ax=ax)
         ax.set_title(f"P_thin: {p_thins[j]} Correlations")
     plt.tight_layout()
-    plt.savefig(f"{save_path}p_thins_correlation_plot.png")
+    plt.savefig(f"{save_path}{method}_p_thins_correlation_plot.png")
     
 
 
