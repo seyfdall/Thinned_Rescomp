@@ -112,13 +112,14 @@ def create_plots(
         thresholds, 
         titles,
         cutoff,
+        rho_p_thin_set,
         param_name,
         param,
         param_set,
         rhos=[],
         p_thins=[]
     ):
-    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/'
+    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     num_plots = len(mean_values)
@@ -131,7 +132,7 @@ def create_plots(
             mean_values[i][mean_values[i] > thresholds[i]] = 0
         create_system_plot(mean_values[i], axs.flatten()[i], titles[i], p_thins=p_thins, rhos=rhos)
 
-    plt.suptitle(f'{param_name}: {param}, {param_set}')
+    plt.suptitle(f'{param_name}: {param}, {param_set}, {rho_p_thin_set}')
     plt.tight_layout()
     plt.savefig(f"{save_path}mean_plots.png")
 
@@ -141,18 +142,19 @@ if __name__ == "__main__":
     """
     Post-Processing Visual Analysis on results
     """
-    param, param_name, param_set = parse_arguments()
+    rho_p_thin_set, param, param_name, param_set = parse_arguments()
 
     home = os.path.expanduser("~")
-    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/'
+    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
-    rhos, p_thins = load_rho_pthin()
+    rhos, p_thins = load_rho_pthin(rho_p_thin_set)
     mean_values = get_system_data(p_thins, rhos, results_path)
     create_plots(
         mean_values, 
         [3, 10, 10, 10, 10, 10], 
         ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'], 
         False, 
+        rho_p_thin_set,
         param_name,
         param,
         param_set,

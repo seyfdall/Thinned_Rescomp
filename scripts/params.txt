@@ -1,1 +1,0 @@
-param_set_1 gamma 15.0

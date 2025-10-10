@@ -6,32 +6,34 @@ while getopts "sv" opt; do
     case $opt in
         s)
             echo "Running search ..."
-            while IFS=' ' read -r PARAM_SET PARAM_NAME PARAM_VALUE; do
+            while IFS=' ' read -r RHO_P_THIN_SET PARAM_SET PARAM_NAME PARAM_VALUE; do
+                echo "RHO_P_THIN_SET=$RHO_P_THIN_SET"
                 echo "PARAM_SET=$PARAM_SET"
                 echo "PARAM_NAME=$PARAM_NAME"
                 echo "PARAM_VALUE=$PARAM_VALUE"
                 echo "--------------------------"
 
                 echo "Submitting job array"  
-                sbatch --array=0-39:10 --export=ALL,PARAM_SET=$PARAM_SET,PARAM_NAME=$PARAM_NAME,PARAM_VALUE=$PARAM_VALUE scripts/simulations_array.sh
+                sbatch --array=0-39:10 --export=ALL,RHO_P_THIN_SET=$RHO_P_THIN_SET,PARAM_SET=$PARAM_SET,PARAM_NAME=$PARAM_NAME,PARAM_VALUE=$PARAM_VALUE scripts/simulations_array.sh
                 # Sleep to not overload the job scheduler
                 sleep 60
-            done < scripts/params.txt
+            done < scripts/vars.txt
             ;;
 
         v)
             echo "Running visualization ..."
-            while IFS=' ' read -r PARAM_SET PARAM_NAME PARAM_VALUE; do
+            while IFS=' ' read -r RHO_P_THIN_SET PARAM_SET PARAM_NAME PARAM_VALUE; do
+                echo "RHO_P_THIN_SET=$RHO_P_THIN_SET"
                 echo "PARAM_SET=$PARAM_SET"
                 echo "PARAM_NAME=$PARAM_NAME"
                 echo "PARAM_VALUE=$PARAM_VALUE"
                 echo "--------------------------"
 
                 echo "Submitting job array"  
-                sbatch --export=ALL,PARAM_SET=$PARAM_SET,PARAM_NAME=$PARAM_NAME,PARAM_VALUE=$PARAM_VALUE scripts/visualization.sh
+                sbatch --export=ALL,RHO_P_THIN_SET=$RHO_P_THIN_SET,PARAM_SET=$PARAM_SET,PARAM_NAME=$PARAM_NAME,PARAM_VALUE=$PARAM_VALUE scripts/visualization.sh
                 # Sleep to not overload the job scheduler
                 sleep 60
-            done < scripts/params.txt
+            done < scripts/vars.txt
             ;;
 
         *)
