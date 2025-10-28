@@ -1,1 +1,4 @@
-scout attractor_recon_set_n_200 sigma 0.15
+p_thin_focus attractor_recon_set_n_400 gamma 50
+p_thin_focus attractor_recon_set_n_400 gamma 40
+p_thin_focus attractor_recon_set_n_400 gamma 30
+p_thin_focus attractor_recon_set_n_400 gamma 20

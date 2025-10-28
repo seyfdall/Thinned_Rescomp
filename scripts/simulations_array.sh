@@ -2,8 +2,8 @@
 #SBATCH --job-name=reservoir_compute
 #SBATCH --output=logs/job_%A_%a.out
 #SBATCH --error=logs/job_%A_%a.err
-#SBATCH --time=06:00:00
-#SBATCH --mem=30G
+#SBATCH --time=24:00:00
+#SBATCH --mem=20G
 #SBATCH --mail-user=dallin.seyfried@mathematics.byu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --cpus-per-task=1
@@ -16,6 +16,7 @@ echo "PARAM_VALUE=$PARAM_VALUE"
 
 # Load Conda properly in non-interactive shell
 # source ~/anaconda3/etc/profile.d/conda.sh
+# 10G for 200, 20G for 400, 30G for 600, 40G for 800 (about 16 - need to up time by a lot), 50G not enough for 1000
 conda activate reservoir
 
 module load openmpi/4.1.6-fgmxkt2
