@@ -1,0 +1,4 @@
+p_thin_focus attractor_recon_set_n_400_c_2_alpha_1e-06 sigma 0.012
+p_thin_focus attractor_recon_set_n_400_c_2_alpha_1e-06 sigma 0.0125
+p_thin_focus attractor_recon_set_n_400_c_2_alpha_1e-06 sigma 0.01275
+p_thin_focus attractor_recon_set_n_400_c_2_alpha_1e-06 sigma 0.013

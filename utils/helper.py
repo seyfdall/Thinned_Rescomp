@@ -21,12 +21,13 @@ Read in Parameters
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-r', '--rho-p-thin-set', type=str, help="list of rhos and p_thins to range over")
     parser.add_argument('-p', '--param', type=float, help="list of parameters to range over")
-    parser.add_argument('-p_name', '--param_name', type=str, help="parameter name to fix")
-    parser.add_argument('-p_set', '--param_set', type=str, help="parameter set name")
+    parser.add_argument('-p_name', '--param-name', type=str, help="parameter name to fix")
+    parser.add_argument('-p_set', '--param-set', type=str, help="parameter set name")
     
     args = parser.parse_args()
-    return args.param, args.param_name, args.param_set
+    return args.rho_p_thin_set, args.param, args.param_name, args.param_set
 
 
 
@@ -34,15 +35,15 @@ def parse_arguments():
 Gridsearch Parameter Setup
 """
 
-def load_rho_pthin():
-    rhos = [0.1,1.0,1.5,2.0,5.0,10.0,25.0,50.0]
-    p_thins = [0.0,0.25,0.50,0.75,0.95]
-    return rhos, p_thins
+def load_rho_pthin(rho_p_thin_set):
+    df = pd.read_csv(f'./utils/rho_p_thin_sets/{rho_p_thin_set}.csv')
+    rho_p_thin_dict = {col: df[col].dropna().tolist() for col in df.columns}
+    return rho_p_thin_dict['rho'], rho_p_thin_dict['p_thin']
 
 
-def generate_params(param, param_name, param_set):
+def generate_params(rho_p_thin_set, param, param_name, param_set):
 
-    rhos, p_thins = load_rho_pthin()
+    rhos, p_thins = load_rho_pthin(rho_p_thin_set)
 
     # Great Params (VPT > 1): Sigma: 5e-2, 4e-2, 3e-2, 2e-2, gamma: 50, 
     # Good gammas: 60, 55, 51, 45, 40, 25, 5

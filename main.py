@@ -8,10 +8,15 @@ import utils.driver as driver
 Main Method to call the Gridsearch
 """
 
+# TODO: Explore Giant Component - create new set with erdos c being 2 so giant component is half before and the half after is the split and include 100% thinning
+# TODO: Line plot the first column (rhos on the x-axis) metrics like VPT, consistency, and diversities on the y-axis
+# TODO: Top right corner - higher highs and lower lows?
+
 def main():
-    param, param_name, param_set = helper.parse_arguments()
+    rho_p_thin_set, param, param_name, param_set = helper.parse_arguments()
 
     rho_p_thin_prod, erdos_possible_combinations = helper.generate_params(
+        rho_p_thin_set,
         param=param, 
         param_name=param_name,
         param_set=param_set
@@ -27,7 +32,7 @@ def main():
         rho, p_thin = rho_p_thin_prod[job_id_number]
         
     home = os.path.expanduser("~")
-    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/'
+    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
     driver.rescomp_parallel_uniform_gridsearch_h5(
         erdos_possible_combinations, 
@@ -35,7 +40,7 @@ def main():
         p_thin,
         draw_count=100000, 
         hdf5_file_path=results_path, 
-        tf=1200
+        tf=7200
     )
 
 

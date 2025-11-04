@@ -77,7 +77,7 @@ To run the gridsearch script, simply type the following in the terminal:
 sh scripts/submit.sh -s
 ```
 
-This will take the values from `scripts/params.txt` and run a new gridsearch for each of the given lines.
+This will take the values from `scripts/vars.txt` and run a new gridsearch for each of the given lines.
 
 This should generate a decent amount of initial test data to run the visualization script on to see what you're working with:
 
@@ -87,7 +87,7 @@ sh scripts/submit.sh -v
 
 Preliminary results will be stored in a results folder.
 
-To create new parameter sets, look over some of the functionality available in `scratch.ipynb`. We store our parameter sets in `utils/param_sets/` as csv files. Feel free to create more and run gridsearches on them by updating `scripts/params.txt`.
+To create new parameter or rho_p_thin sets, look over some of the functionality available in `scratch.ipynb`. We store our parameter sets in `utils/param_sets/` and rho_p_thin sets in `utils/rho_p_thin_sets/` as csv files. Feel free to create more and run gridsearches on them by updating `scripts/vars.txt`.
 
 For more information see:
 * https://acme.byu.edu/00000180-6d94-d2d1-ade4-6ff4c7cf0001/mpi (for a decent walkthrough of mpi basic principles)
