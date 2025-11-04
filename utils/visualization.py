@@ -142,7 +142,7 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
     p_thin_index = np.interp(p_thin_cs[0], p_thins, range(len(p_thins)))
     ax2.axvline(x=p_thin_index, linestyle='--', linewidth=1, label="c=1")
     p_thin_index = np.interp(p_thin_cs[1], p_thins, range(len(p_thins)))
-    ax2.axvline(x=p_thin_index, linestyle='--', linewidth=1, label="c=1.5")
+    ax2.axvline(x=p_thin_index, linestyle='--', color='r', linewidth=1, label="c=1.5")
     
     # Format tick labels nicely (max 2 decimals)
     rho_labels = [f"{x:.2f}".rstrip('0').rstrip('.') for x in rhos]
