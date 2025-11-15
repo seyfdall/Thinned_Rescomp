@@ -2,6 +2,7 @@ import numpy as np
 import itertools
 import argparse
 import pandas as pd
+import networkx as nx
 
 from scipy.interpolate import CubicSpline
 
@@ -111,3 +112,10 @@ def remove_edges(A,n_edges):
     for e in remove:
         B[e] = 0
     return B
+
+
+def graph_from_rescomp(rescomp):
+    A = rescomp.res
+    G = nx.from_scipy_sparse_array(A, create_using=nx.DiGraph)
+    return G
+

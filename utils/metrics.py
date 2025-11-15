@@ -267,4 +267,53 @@ def consistency_analysis_pearson(x, y, transient_cutoff=3000, alpha=1e-9):
 
     return cap
 
+#GRAPH STRUCTURE METRICS
+
+def num_driving(G):
+    """
+    Compute the number of simple driving nodes (ie nodes pointing from one scc to another
+    in a network.
+
+    Parameters:
+        G (DiGraph): directed network
+
+    Returns:
+        (float): number of drivers
+    """
+    C = nx.condensation(G)  # condensation collapeses a network into its scc and their connections (1 if there is any connection between them)
+    node_to_scc = C.graph['mapping']
+    drivers = [node_to_scc[u] != node_to_scc[v] for u, v in G.edges()]
+    return sum(drivers)
+
+def fraction_driving(G):
+    """
+    Compute the fraction of simple driving nodes (ie nodes pointing from one scc to another
+    in a network.
+
+    Parameters:
+        G (DiGraph): directed network
+
+    Returns:
+        (float): fraction of driver nodes
+    """
+    return num_driving(G) / len(G.nodes())
+
+def gc_size(G):
+    """
+    Compute the size of the largest component in a network
+
+    Parameters:
+        G (DiGraph): directed network
+
+    Returns:
+        (int): max component size
+    """
+    component_sizes = np.array([len(component) for component in nx.strongly_connected_components(G)])
+    max_size = component_sizes.max()
+    return max_size
+
+
+
+
+
 

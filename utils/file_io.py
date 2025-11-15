@@ -142,7 +142,7 @@ class GroupIOHandler:
         """ Retrieves a specific dataset from in-memory storage. """
         return self.datasets.get(name)
     
-
+## TODO update the file handler and the driver to capture my metrics and store them in the experiments file
 def create_rescomp_datasets_template(
         div_der = [], 
         div_pos = [], 
@@ -151,7 +151,10 @@ def create_rescomp_datasets_template(
         vpt = [],
         pred = [],
         err = [],
-        consistency_correlation = []
+        consistency_correlation = [],
+        gc_size = [],
+        fraction_driving = []
+
     ):
     """ Template to create attributes/datasets object for hdf5 file groups """
 
@@ -163,7 +166,9 @@ def create_rescomp_datasets_template(
         "vpt": vpt,
         "pred": pred,
         "err": err,
-        "consistency_correlation": consistency_correlation
+        "consistency_correlation": consistency_correlation,
+        "gc_size": gc_size,
+        "fraction_driving": fraction_driving
     }
 
 

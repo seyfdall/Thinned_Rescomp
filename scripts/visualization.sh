@@ -5,7 +5,7 @@
 #SBATCH --mem-per-cpu=1024M   # memory per CPU core
 #SBATCH -J "Reservoir_Visualization"   # job name
 #SBATCH --output=./results/visualization.txt
-#SBATCH --mail-user=dallin.seyfried@mathematics.byu.edu   # email address
+#SBATCH --mail-user=fmurray@byu.edu   # email address
 #SBATCH --mail-type=BEGIN
 #SBATCH --mail-type=END
 #SBATCH --mail-type=FAIL
