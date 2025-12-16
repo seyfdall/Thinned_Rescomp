@@ -1,10 +1,54 @@
 import numpy as np
 from math import comb
 from scipy.sparse.linalg import svds
+import networkx as nx
 
 """
 Metrics
 """
+
+def calculate_diameters(A):
+    """Calculate 3 diameters of the graph formed from the adjacency matrix A
+    
+    Returns:
+        giant_diam (int): diameter of the giant component (or largest component if the giant doesn't exist)
+
+        largest_diam (int): largest diameter found over all components
+        
+        average_diam (int): average over all diameters
+    """
+    G = nx.from_scipy_sparse_array(A)
+
+    giant_diam = 0
+    giant_size = 0
+    largest_diam = 0
+    sum_diam = 0
+
+    connected_components = list(nx.connected_components(G))
+
+    for c in connected_components:
+        G_sub = G.subgraph(c)
+        curr_diam = nx.diameter(G_sub)
+        m = len(G_sub)
+
+        # Update Giant Diameter
+        if m > giant_size:
+            giant_diam = curr_diam
+            giant_size = m
+        elif m == giant_size and curr_diam > giant_diam:
+            giant_diam = curr_diam
+
+        # Update Largest Diameter
+        if curr_diam > largest_diam:
+            largest_diam = curr_diam
+
+        # Update Average Diameter
+        sum_diam += curr_diam
+
+    average_diam = sum_diam / len(connected_components)
+
+    return giant_diam, largest_diam, average_diam
+
 
 def nrmse(true, pred):
     """ Normalized root mean square error. (A metric for measuring difference in orbits)

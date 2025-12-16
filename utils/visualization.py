@@ -60,7 +60,10 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pear
         "Div_Der": mean_values[2],
         "Div_Spect": mean_values[3],
         "Div_Rank": mean_values[4],
-        "Consistency": mean_values[5]
+        "Consistency": mean_values[5],
+        "Giant_Diam": mean_values[6],
+        "Largest_Diam": mean_values[7],
+        "Average_Diam": mean_values[8]
     }
 
     # Flatten and build dataframe
@@ -114,7 +117,10 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
         "Div_Der": mean_values[2],
         "Div_Spect": mean_values[3],
         "Div_Rank": mean_values[4],
-        "Consistency": mean_values[5]
+        "Consistency": mean_values[5],
+        "Giant_Diam": mean_values[6],
+        "Largest_Diam": mean_values[7],
+        "Average_Diam": mean_values[8]
     }
 
     row_cors = []
@@ -207,6 +213,60 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
     plt.savefig(f"{save_path}p_thin_normalized_plots.png")
 
 
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*5,num_rows*4))
+    axes = axs.flatten()
+
+    linestyles = ['-', '--']
+    colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
+
+    for j in range(len(p_thins)):
+        for i in range(len(mean_values)):
+            ax = axes[j]
+            ax.plot(
+                rho_indices, 
+                np.abs(_normalize_minmax(mean_values[i][:,j])-_normalize_minmax(mean_values[0][:,j])), 
+                label=titles[i], 
+                color=colors[i % len(colors)],
+                linestyle=linestyles[i % len(linestyles)]
+            )
+
+            ax.set_xlabel("Rho")
+            ax.set_xticks(rho_indices)
+            ax.set_xticklabels(rho_labels)
+            ax.set_title(f'L1 Error with VPT: p_thin = {round(p_thins[j],2)}')
+            ax.legend()
+
+    plt.tight_layout()
+    plt.savefig(f"{save_path}p_thin_normalized_l1_err_plots.png")
+
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*5,num_rows*4))
+    axes = axs.flatten()
+
+    linestyles = ['-', '--']
+    colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
+
+    for j in range(len(p_thins)):
+        for i in range(len(mean_values)):
+            ax = axes[j]
+            ax.plot(
+                rho_indices, 
+                np.cumsum(np.abs(_normalize_minmax(mean_values[i][:,j])-_normalize_minmax(mean_values[0][:,j]))), 
+                label=titles[i], 
+                color=colors[i % len(colors)],
+                linestyle=linestyles[i % len(linestyles)]
+            )
+
+            ax.set_xlabel("Rho")
+            ax.set_xticks(rho_indices)
+            ax.set_xticklabels(rho_labels)
+            ax.set_title(f'Cumulative L1 Error with VPT: p_thin = {round(p_thins[j],2)}')
+            ax.legend()
+
+    plt.tight_layout()
+    plt.savefig(f"{save_path}p_thin_normalized_cumulative_l1_err_plots.png")
+
+
 def create_plots(
         mean_values, 
         thresholds, 
@@ -259,8 +319,8 @@ if __name__ == "__main__":
     mean_values = get_system_data(p_thins, rhos, results_path)
     create_plots(
         mean_values, 
-        [3, 10, 10, 10, 10, 10], 
-        ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'], 
+        [3, 10, 10, 10, 10, 10, 10, 10, 10], 
+        ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency', 'Giant Diameter', 'Largest Diameter', 'Average Diameter'], 
         False, 
         rho_p_thin_set,
         param_name,

@@ -151,7 +151,10 @@ def create_rescomp_datasets_template(
         vpt = [],
         pred = [],
         err = [],
-        consistency_correlation = []
+        consistency_correlation = [],
+        giant_diam = [],
+        largest_diam = [],
+        average_diam = []
     ):
     """ Template to create attributes/datasets object for hdf5 file groups """
 
@@ -163,7 +166,10 @@ def create_rescomp_datasets_template(
         "vpt": vpt,
         "pred": pred,
         "err": err,
-        "consistency_correlation": consistency_correlation
+        "consistency_correlation": consistency_correlation,
+        "giant_diam": giant_diam,
+        "largest_diam": largest_diam,
+        "average_diam": average_diam
     }
 
 
@@ -224,6 +230,9 @@ def get_file_data(hdf5_file='results/erdos_results_0.h5'):
         div_spect_list = []
         div_rank_list = []
         consistency_list = []
+        giant_diam_list = []
+        largest_diam_list = []
+        average_diam_list = []
 
         for group_name in file.keys():
             group = file[group_name]
@@ -235,6 +244,9 @@ def get_file_data(hdf5_file='results/erdos_results_0.h5'):
             div_spect_list.append(group.attrs['mean_div_spect'])
             div_rank_list.append(group.attrs['mean_div_rank'])
             consistency_list.append(group.attrs['mean_consistency_correlation'])
+            giant_diam_list.append(group.attrs['mean_giant_diam'])
+            largest_diam_list.append(group.attrs['mean_largest_diam'])
+            average_diam_list.append(group.attrs['mean_average_diam'])
             # print('{}, c: {}, vpt_connected: {}, p_thin: {}, vpt_thinned: {}'.format(group_name, c, vpt_connected, p_thin, vpt_thinned))
         # print('vpt_connected_average: {}, vpt_thinned_average: {}'.format(np.mean(vpt_connected_list), np.mean(vpt_thinned_list)))
         
@@ -244,10 +256,13 @@ def get_file_data(hdf5_file='results/erdos_results_0.h5'):
         mean_div_spect = np.mean(div_spect_list)
         mean_div_rank = np.mean(div_rank_list)
         mean_consistency = np.mean(consistency_list)
+        mean_giant_diam = np.mean(giant_diam_list)
+        mean_largest_diam = np.mean(largest_diam_list)
+        mean_average_diam = np.mean(average_diam_list)
         print(f"Number of draws successfully made for {hdf5_file}: {len(vpt_list)}")
         print(f"Mean diversity: {mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank}")
         
-        return mean_vpt, mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank, mean_consistency
+        return mean_vpt, mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank, mean_consistency, mean_giant_diam, mean_largest_diam, mean_average_diam
     
 
 def get_system_data(p_thins, rhos, results_path):
@@ -260,15 +275,27 @@ def get_system_data(p_thins, rhos, results_path):
     mean_spect_divs = np.zeros((len(rhos), len(p_thins)))
     mean_rank_divs = np.zeros((len(rhos), len(p_thins)))
     mean_consistencies = np.zeros((len(rhos), len(p_thins)))
+    mean_giant_diameters = np.zeros((len(rhos), len(p_thins)))
+    mean_largest_diameters = np.zeros((len(rhos), len(p_thins)))
+    mean_average_diam = np.zeros((len(rhos), len(p_thins)))
 
     for i, rho in enumerate(rhos):
         for j, p_thin in enumerate(p_thins):
             hdf5_file = results_path + f"_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5"
-            mean_vpts[i,j], mean_pos_divs[i,j], mean_der_divs[i,j], mean_spect_divs[i,j], mean_rank_divs[i,j], mean_consistencies[i,j] = get_file_data(hdf5_file=hdf5_file)
+            mean_values = get_file_data(hdf5_file=hdf5_file)
+            mean_vpts[i,j] = mean_values[0]
+            mean_pos_divs[i,j] = mean_values[1]
+            mean_der_divs[i,j] = mean_values[2]
+            mean_spect_divs[i,j] = mean_values[3]
+            mean_rank_divs[i,j] = mean_values[4]
+            mean_consistencies[i,j] = mean_values[5]
+            mean_giant_diameters[i,j] = mean_values[6]
+            mean_largest_diameters[i,j] = mean_values[7]
+            mean_average_diam[i,j] = mean_values[8]
             print("VPT", mean_vpts[i,j])
 
     print(f"Overall: {np.max(mean_consistencies), np.min(mean_consistencies)}")
-    return mean_vpts, mean_pos_divs, mean_der_divs, mean_spect_divs, mean_rank_divs, mean_consistencies
+    return mean_vpts, mean_pos_divs, mean_der_divs, mean_spect_divs, mean_rank_divs, mean_consistencies, mean_giant_diameters, mean_largest_diameters, mean_average_diam
 
 
 def remove_system_data(results_path):
