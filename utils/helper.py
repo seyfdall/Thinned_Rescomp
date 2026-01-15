@@ -112,3 +112,55 @@ def remove_edges(A,n_edges):
     for e in remove:
         B[e] = 0
     return B
+
+def generate_DAG(k: int, sizes, erdos_cs):
+    """
+    Args:
+        k (int): number of connected components in the graph.
+        sizes (int array): the sizes of each of the components.
+        erdos_cs (float array):
+
+    Returns:
+        ReturnType: Description of the return value.
+
+    Raises:
+        Type Error: if sizes or erdos_cs is not an array.
+        Value Error: if sizes or erdos_cs are not of size k
+    """
+
+    #Validate the inputs
+    if not hasattr(sizes, "__len__") or (type(sizes) != list and type(sizes) != np.ndarray):
+        raise TypeError("sizes must be an array with a length attribute")
+    if len(sizes) != k:
+        raise ValueError("sizes must have length k")
+    if not hasattr(erdos_cs, "__len__") or (type(erdos_cs) != list and type(erdos_cs) != np.ndarray):
+        raise TypeError("erdos_cs must be an array with a length attribute")
+    if len(erdos_cs) != k:
+        raise ValueError("erdos_cs must have length k")
+    
+    A = np.zeros((np.sum(sizes), np.sum(sizes)))
+
+    for i in range(len(sizes)):
+        for j in range(len(sizes)):
+
+            if i > j:
+                continue
+
+            # convert block indicies into index of upper left corner of block in A
+            I_start, I_stop = int(np.sum(sizes[:i])), int(np.sum(sizes[:i + 1]))
+            J_start, J_stop = int(np.sum(sizes[:j])), int(np.sum(sizes[:j + 1]))
+
+            n, m = sizes[i], sizes[j]
+            # average erdos connectivity weighted by size of the component or the erdos c of the component
+            c = erdos_cs[i] if i == j else np.average(erdos_cs, weights=sizes)
+            # probability of connecting on the off diagonal or the diagonal
+            p = n / c if i == j else m / c
+
+            if i == j:
+                component = np.triu(np.random.binomial(n=1, p=p, size=(n, n)), k = 1) # k = 1 to exclude the diagonal and ensure acyclic
+            else:
+                component = np.random.binomial(n=1, p=p, size=A[I_start:I_stop, J_start:J_stop].shape)
+
+            A[I_start:I_stop, J_start:J_stop] = component
+    
+    return A
