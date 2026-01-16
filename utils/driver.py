@@ -19,7 +19,7 @@ import ResComp
 """
 Import Helper functions
 """
-from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson
+from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson, calculate_diameters
 from file_io import HDF5FileHandler, create_rescomp_datasets_template, generate_rescomp_means
 from helper import get_orbit
 
@@ -93,6 +93,7 @@ def drive_reservoir_analysis(
     error = np.linalg.norm(U_test - U_pred, axis=1)
     vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
     divs = div_metric_tests(res_thinned.states)
+    giant_diam, largest_diam, average_diam = calculate_diameters(res_thinned.res)
 
     print("Divs:", divs)
 
@@ -104,6 +105,9 @@ def drive_reservoir_analysis(
     datasets['err'].append(error)
     datasets['vpt'].append(vpt)
     datasets['consistency_correlation'].append(cap)
+    datasets['giant_diam'].append(giant_diam)
+    datasets['largest_diam'].append(largest_diam)
+    datasets['average_diam'].append(average_diam)
 
     mean_attrs = generate_rescomp_means(datasets)
 
