@@ -10,61 +10,62 @@ import os
 import pandas as pd
 import seaborn as sns
 from cycler import cycler
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+return_metrics = lambda mean_values: {
+    "VPT": mean_values[0],
+    "Div_Pos": mean_values[1],
+    # "Div_Der": mean_values[2],
+    # "Div_Spect": mean_values[3],
+    # "Div_Rank": mean_values[4],
+    "Consistency": mean_values[2],
+    # "Giant_Diam": mean_values[6],
+    # "Largest_Diam": mean_values[7],
+    # "Average_Diam": mean_values[8]
+}
 
 
-def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
-    """
-    
-    """
+def create_system_plot(values, ax, title, p_thins, rhos, label_step=4):
+    values = np.asarray(values)
+    p_thins = np.asarray(p_thins)
+    rhos = np.asarray(rhos)
 
-    cmap = 'viridis'
-    # norm = matplotlib.colors.Normalize(vmin=0, vmax=np.max(values[np.isfinite(values)]))
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=min([np.max(values[np.isfinite(values)])]))
-    sm = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
+    if values.shape != (len(rhos), len(p_thins)):
+        raise ValueError("values must have shape (len(rhos), len(p_thins))")
 
-    # Create evenly spaced grid for plotting
-    x_even = np.linspace(0, 1, len(p_thins))  # evenly spaced x-coordinates
-    y_even = np.linspace(0, 1, len(rhos))  # evenly spaced y-coordinates
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=np.nanmax(values))
 
-    # X, Y = np.meshgrid(p_thins, rhos)
-    ax.pcolormesh(x_even, y_even, values, shading='nearest', norm=norm, cmap=cmap)
-    # ax.pcolormesh(X, Y, values, shading='nearest', cmap=cmap)
-    
-    ax.set_title(title)
-    ax.set_xlabel('p_thin')
-    ax.set_ylabel('rho')
-    ax.set_xticks(x_even)
-    ax.set_xticklabels(p_thins)  # map to original uneven x-values
-    ax.set_yticks(y_even)
-    ax.set_yticklabels(rhos)  # map to original uneven y-values
-    ax.set_aspect('equal', adjustable='box')  # Ensure square cells
+    x = np.arange(len(p_thins))
+    y = np.arange(len(rhos))
 
-    
-    # Format the ticks to show 1 decimal place and set them as labels
-    ticks = ax.get_xticks()
-    ax.set_xticklabels([f'{tick:.1f}' for tick in ticks])
+    mesh = ax.pcolormesh(
+        x, y, values,
+        shading="nearest",
+        cmap="viridis",
+        norm=norm
+    )
 
-    # Reduce visible x-axis labels
-    labels = ax.get_xticklabels()
-    for i, label in enumerate(labels):
-        if i % 3 != 0:  # Show every 3rd label
-            label.set_visible(False)
-    
-    plt.colorbar(mappable=sm, ax=ax)
+    ax.set(
+        title=title,
+        xlabel="p_thin",
+        ylabel="rho",
+        xticks=x,
+        yticks=y,
+        xticklabels=[f"{p:.2f}".rstrip('0').rstrip('.') for p in p_thins],
+        yticklabels=[f"{r:.2f}".rstrip('0').rstrip('.') for r in rhos],
+    )
+
+    for i, lbl in enumerate(ax.get_xticklabels()):
+        lbl.set_visible(i % label_step == 0)
+
+    # ---- external colorbar ----
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(mesh, cax=cax)
 
 
 def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pearson"):
-    metrics = {
-        "VPT": mean_values[0],
-        "Div_Pos": mean_values[1],
-        "Div_Der": mean_values[2],
-        "Div_Spect": mean_values[3],
-        "Div_Rank": mean_values[4],
-        "Consistency": mean_values[5],
-        "Giant_Diam": mean_values[6],
-        "Largest_Diam": mean_values[7],
-        "Average_Diam": mean_values[8]
-    }
+    metrics = return_metrics(mean_values)
 
     # Flatten and build dataframe
     df = pd.DataFrame({name: mat.flatten() for name, mat in metrics.items()})
@@ -111,17 +112,7 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pear
 
 
 def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs, method="pearson"):
-    metrics = {
-        "VPT": mean_values[0],
-        "Div_Pos": mean_values[1],
-        "Div_Der": mean_values[2],
-        "Div_Spect": mean_values[3],
-        "Div_Rank": mean_values[4],
-        "Consistency": mean_values[5],
-        "Giant_Diam": mean_values[6],
-        "Largest_Diam": mean_values[7],
-        "Average_Diam": mean_values[8]
-    }
+    metrics = return_metrics(mean_values)
 
     row_cors = []
     for i in range(next(iter(metrics.values())).shape[0]):
@@ -206,7 +197,7 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
             ax.set_xlabel("Rho")
             ax.set_xticks(rho_indices)
             ax.set_xticklabels(rho_labels)
-            ax.set_title(f'Normalized Standard Plots: p_thin = {round(p_thins[j],2)}')
+            ax.set_title(f'Normalized Standard Plots: p_thin = {round(p_thins[j],3)}')
             ax.legend()
 
     plt.tight_layout()
@@ -233,7 +224,7 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
             ax.set_xlabel("Rho")
             ax.set_xticks(rho_indices)
             ax.set_xticklabels(rho_labels)
-            ax.set_title(f'L1 Error with VPT: p_thin = {round(p_thins[j],2)}')
+            ax.set_title(f'L1 Error with VPT: p_thin = {round(p_thins[j],3)}')
             ax.legend()
 
     plt.tight_layout()
@@ -260,11 +251,57 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
             ax.set_xlabel("Rho")
             ax.set_xticks(rho_indices)
             ax.set_xticklabels(rho_labels)
-            ax.set_title(f'Cumulative L1 Error with VPT: p_thin = {round(p_thins[j],2)}')
+            ax.set_title(f'Cumulative L1 Error with VPT: p_thin = {round(p_thins[j],3)}')
             ax.legend()
 
     plt.tight_layout()
     plt.savefig(f"{save_path}p_thin_normalized_cumulative_l1_err_plots.png")
+
+
+def create_diameter_p_thin_plots(mean_diameters, save_path, p_thins, titles):
+    p_thin_indices = range(len(p_thins))
+    p_thin_labels = [f"{x:.3f}".rstrip('0').rstrip('.') for x in p_thins]
+
+    # compute c values from p_thin
+    c_values = [10 * (1 - p) for p in p_thins]
+    c_labels = [f"{c:.2f}".rstrip('0').rstrip('.') for c in c_values]
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    # main plots
+    ax.plot(mean_diameters[0][0, :], label=titles[0])
+    ax.plot(mean_diameters[1][0, :], label=titles[1])
+    ax.plot(mean_diameters[2][0, :], label=titles[2])
+
+    # vertical line at max diameter
+    argmax_p_thin = np.argmax(mean_diameters[0][0, :])
+    ax.axvline(x=argmax_p_thin, linestyle='--', linewidth=1, label="max diameter")
+
+    # bottom x-axis: p_thin
+    ax.set_xticks(p_thin_indices)
+    ax.set_xticklabels(p_thin_labels)
+    ax.set_xlabel("p_thin")
+    ax.set_ylabel("diameter")
+    ax.set_title("Diameters over p_thin")
+
+    # top x-axis: c
+    ax_top = ax.twiny()
+    ax_top.set_xlim(ax.get_xlim())  # keep alignment
+    ax_top.set_xticks(p_thin_indices)
+    ax_top.set_xticklabels(c_labels)
+    ax_top.set_xlabel(r"$c = 10(1 - p_{\mathrm{thin}})$")
+
+    for i, lbl in enumerate(ax.get_xticklabels()):
+        lbl.set_visible(i % 8 == 0)
+
+    for i, lbl in enumerate(ax_top.get_xticklabels()):
+        lbl.set_visible(i % 8 == 0)
+
+    ax.legend()
+    fig.tight_layout()
+
+    plt.savefig(f"{save_path}diameter_p_thin_plot.png")
+    plt.show()
 
 
 def create_plots(
@@ -282,12 +319,14 @@ def create_plots(
     save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-    num_plots = len(mean_values)
+    diam_cutoff = 6
+
+    num_plots = diam_cutoff
     num_rows = int(np.sqrt(num_plots))
     num_cols = int(num_plots / num_rows) + 1
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*3.5,num_rows*3.2))
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*12,num_rows*10))
 
-    for i in range(len(mean_values)):
+    for i in range(diam_cutoff):
         if cutoff:
             mean_values[i][mean_values[i] > thresholds[i]] = 0
         create_system_plot(mean_values[i], axs.flatten()[i], titles[i], p_thins=p_thins, rhos=rhos)
@@ -301,9 +340,15 @@ def create_plots(
     p_thin_cs = [(1-1./c), (1-1.5/c)]
     print(f"\np_thin_cs: {p_thin_cs} \n")
 
-    create_correlation_plots(mean_values, save_path, rhos, p_thins)
-    create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs)
-    create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles)
+    # Plot only for VPT, div_pos, and consistency
+    indices = [0,1,5]
+    focused_values = [mean_values[i] for i in indices]
+    focused_titles = [titles[i] for i in indices]
+
+    create_correlation_plots(focused_values, save_path, rhos, p_thins)
+    create_correlation_line_plots(focused_values, save_path, rhos, p_thins, p_thin_cs)
+    create_column_linear_plots(focused_values, save_path, rhos, p_thins, focused_titles)
+    create_diameter_p_thin_plots(mean_values[diam_cutoff:], save_path, p_thins, titles[diam_cutoff:])
 
 
 if __name__ == "__main__":
@@ -319,7 +364,7 @@ if __name__ == "__main__":
     mean_values = get_system_data(p_thins, rhos, results_path)
     create_plots(
         mean_values, 
-        [3, 10, 10, 10, 10, 10, 10, 10, 10], 
+        [3, 10, 10, 10, 10, 10], 
         ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency', 'Giant Diameter', 'Largest Diameter', 'Average Diameter'], 
         False, 
         rho_p_thin_set,

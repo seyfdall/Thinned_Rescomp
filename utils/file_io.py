@@ -277,7 +277,7 @@ def get_system_data(p_thins, rhos, results_path):
     mean_consistencies = np.zeros((len(rhos), len(p_thins)))
     mean_giant_diameters = np.zeros((len(rhos), len(p_thins)))
     mean_largest_diameters = np.zeros((len(rhos), len(p_thins)))
-    mean_average_diam = np.zeros((len(rhos), len(p_thins)))
+    mean_average_diameters = np.zeros((len(rhos), len(p_thins)))
 
     for i, rho in enumerate(rhos):
         for j, p_thin in enumerate(p_thins):
@@ -291,11 +291,11 @@ def get_system_data(p_thins, rhos, results_path):
             mean_consistencies[i,j] = mean_values[5]
             mean_giant_diameters[i,j] = mean_values[6]
             mean_largest_diameters[i,j] = mean_values[7]
-            mean_average_diam[i,j] = mean_values[8]
+            mean_average_diameters[i,j] = mean_values[8]
             print("VPT", mean_vpts[i,j])
 
     print(f"Overall: {np.max(mean_consistencies), np.min(mean_consistencies)}")
-    return mean_vpts, mean_pos_divs, mean_der_divs, mean_spect_divs, mean_rank_divs, mean_consistencies, mean_giant_diameters, mean_largest_diameters, mean_average_diam
+    return mean_vpts, mean_pos_divs, mean_der_divs, mean_spect_divs, mean_rank_divs, mean_consistencies, mean_giant_diameters, mean_largest_diameters, mean_average_diameters
 
 
 def remove_system_data(results_path):

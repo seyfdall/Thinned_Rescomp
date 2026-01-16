@@ -47,6 +47,8 @@ def calculate_diameters(A):
 
     average_diam = sum_diam / len(connected_components)
 
+    largest_diam = nx.diameter(G.subgraph(max(nx.connected_components(G), key=len)))
+
     return giant_diam, largest_diam, average_diam
 
 
