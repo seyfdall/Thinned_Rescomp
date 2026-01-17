@@ -218,84 +218,66 @@ Example Usage:
 Reading from the files
 """
 
-def get_file_data(hdf5_file='results/erdos_results_0.h5'):
+metric_attrs = ['mean_average_diam', 'mean_consistency_correlation', 'mean_div_der', 'mean_div_pos', 
+                'mean_div_rank', 'mean_div_spect', 'mean_giant_diam', 'mean_vpt']
+
+def get_file_metrics(hdf5_file):
     """
     
     """
-
     with h5py.File(hdf5_file, 'r') as file:
-        vpt_list = []
-        div_pos_list = []
-        div_der_list = []
-        div_spect_list = []
-        div_rank_list = []
-        consistency_list = []
-        giant_diam_list = []
-        largest_diam_list = []
-        average_diam_list = []
+        metrics = {}
 
         for group_name in file.keys():
             group = file[group_name]
-            if 'mean_vpt' not in list(group.attrs):
-                continue
-            vpt_list.append(group.attrs['mean_vpt'])
-            div_pos_list.append(group.attrs['mean_div_pos'])
-            div_der_list.append(group.attrs['mean_div_der'])
-            div_spect_list.append(group.attrs['mean_div_spect'])
-            div_rank_list.append(group.attrs['mean_div_rank'])
-            consistency_list.append(group.attrs['mean_consistency_correlation'])
-            giant_diam_list.append(group.attrs['mean_giant_diam'])
-            largest_diam_list.append(group.attrs['mean_largest_diam'])
-            average_diam_list.append(group.attrs['mean_average_diam'])
-            # print('{}, c: {}, vpt_connected: {}, p_thin: {}, vpt_thinned: {}'.format(group_name, c, vpt_connected, p_thin, vpt_thinned))
-        # print('vpt_connected_average: {}, vpt_thinned_average: {}'.format(np.mean(vpt_connected_list), np.mean(vpt_thinned_list)))
-        
-        mean_vpt = np.mean(vpt_list)
-        mean_div_pos = np.mean(div_pos_list)
-        mean_div_der = np.mean(div_der_list)
-        mean_div_spect = np.mean(div_spect_list)
-        mean_div_rank = np.mean(div_rank_list)
-        mean_consistency = np.mean(consistency_list)
-        mean_giant_diam = np.mean(giant_diam_list)
-        mean_largest_diam = np.mean(largest_diam_list)
-        mean_average_diam = np.mean(average_diam_list)
-        print(f"Number of draws successfully made for {hdf5_file}: {len(vpt_list)}")
-        print(f"Mean diversity: {mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank}")
-        
-        return mean_vpt, mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank, mean_consistency, mean_giant_diam, mean_largest_diam, mean_average_diam
+
+            for attr in group.attrs:
+                # Skip run_attributes for now
+                if attr not in metric_attrs:
+                    continue
+
+                if attr not in metrics.keys():
+                    metrics[attr] = [group.attrs[attr]]
+                else:
+                    metrics[attr].append(group.attrs[attr])
+
+        print(f"Number of draws successfully made for {hdf5_file}: {len(metrics['mean_vpt'])}")
+        print(f"Mean position diversity: {np.mean(metrics['mean_div_pos'])}")
+
+        return metrics
     
 
-def get_system_data(p_thins, rhos, results_path):
+def get_average_file_metrics(hdf5_file):
+    """
+
+    """
+    metrics = get_file_metrics(hdf5_file)
+    mean_metrics = {}
+
+    for attr in metrics.keys():
+        mean_metrics[attr] = np.mean(metrics[attr])
+
+    return mean_metrics
+    
+
+def get_average_system_metrics(p_thins, rhos, results_path):
     """
     
     """
-    mean_vpts = np.zeros((len(rhos), len(p_thins)))
-    mean_pos_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_der_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_spect_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_rank_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_consistencies = np.zeros((len(rhos), len(p_thins)))
-    mean_giant_diameters = np.zeros((len(rhos), len(p_thins)))
-    mean_largest_diameters = np.zeros((len(rhos), len(p_thins)))
-    mean_average_diameters = np.zeros((len(rhos), len(p_thins)))
+    comp_metrics = {attr: np.zeros((len(rhos), len(p_thins))) for attr in metric_attrs}
 
     for i, rho in enumerate(rhos):
         for j, p_thin in enumerate(p_thins):
             hdf5_file = results_path + f"_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5"
-            mean_values = get_file_data(hdf5_file=hdf5_file)
-            mean_vpts[i,j] = mean_values[0]
-            mean_pos_divs[i,j] = mean_values[1]
-            mean_der_divs[i,j] = mean_values[2]
-            mean_spect_divs[i,j] = mean_values[3]
-            mean_rank_divs[i,j] = mean_values[4]
-            mean_consistencies[i,j] = mean_values[5]
-            mean_giant_diameters[i,j] = mean_values[6]
-            mean_largest_diameters[i,j] = mean_values[7]
-            mean_average_diameters[i,j] = mean_values[8]
-            print("VPT", mean_vpts[i,j])
+            mean_metrics = get_average_file_metrics(hdf5_file=hdf5_file)
 
-    print(f"Overall: {np.max(mean_consistencies), np.min(mean_consistencies)}")
-    return mean_vpts, mean_pos_divs, mean_der_divs, mean_spect_divs, mean_rank_divs, mean_consistencies, mean_giant_diameters, mean_largest_diameters, mean_average_diameters
+            for attr in mean_metrics:
+                comp_metrics[attr][i,j] = mean_metrics[attr]
+
+            print("VPT", comp_metrics['mean_vpt'][i,j])
+
+    print(f"Overall: {np.max(comp_metrics['mean_consistency_correlation']), np.min(comp_metrics['mean_consistency_correlation'])}")
+    return comp_metrics
 
 
 def remove_system_data(results_path):
