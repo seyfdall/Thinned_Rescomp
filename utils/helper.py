@@ -1,7 +1,7 @@
 import numpy as np
 import itertools
 import argparse
-import pandas as pd
+import json
 
 from scipy.interpolate import CubicSpline
 
@@ -35,15 +35,8 @@ def parse_arguments():
 Gridsearch Parameter Setup
 """
 
-def load_rho_pthin(rho_p_thin_set):
-    df = pd.read_csv(f'./utils/rho_p_thin_sets/{rho_p_thin_set}.csv')
-    rho_p_thin_dict = {col: df[col].dropna().tolist() for col in df.columns}
-    return rho_p_thin_dict['rho'], rho_p_thin_dict['p_thin']
-
 
 def generate_params(rho_p_thin_set, param, param_name, param_set):
-
-    rhos, p_thins = load_rho_pthin(rho_p_thin_set)
 
     # Great Params (VPT > 1): Sigma: 5e-2, 4e-2, 3e-2, 2e-2, gamma: 50, 
     # Good gammas: 60, 55, 51, 45, 40, 25, 5
@@ -51,9 +44,14 @@ def generate_params(rho_p_thin_set, param, param_name, param_set):
     # Good alphas: 1e-8, 1e-4, 1e-6
 
     # Reservoir Computing Parameters
-    df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
-    param_dict = {col: df[col].dropna().tolist() for col in df.columns}
-    rhos_p_thin_dict = {'rho': rhos, 'p_thin': p_thins}
+    rhos_p_thin_dict = {}
+    with open(f'./utils/rho_p_thin_sets/{rho_p_thin_set}.json') as f:
+        rhos_p_thin_dict = json.load(f)
+
+    param_dict = {}
+    with open(f'./utils/param_sets/{param_set}.json') as f:
+        param_dict = json.load(f)
+
     parameters = param_dict | rhos_p_thin_dict
 
     # Ensure ints are ints

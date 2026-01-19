@@ -1,1 +1,1 @@
-comprehensive_set_III attractor_recon_set_n_400_c_10 alpha 0.00000002
+comprehensive_set_III attractor_recon_set_n_400_c_10 alpha 2e-08

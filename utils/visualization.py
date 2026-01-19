@@ -3,11 +3,12 @@ import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 import matplotlib
 from file_io import get_average_system_metrics
-from helper import parse_arguments, load_rho_pthin
+from helper import parse_arguments
 from pathlib import Path
 import argparse
 import os
 import pandas as pd
+import json
 import seaborn as sns
 from cycler import cycler
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -141,6 +142,8 @@ def create_correlation_line_plots(metrics, save_path, rhos, p_thins, p_thin_cs, 
     ax1.set_ylabel(f"{method} correlation")
     ax1.legend()
 
+    for i, lbl in enumerate(ax2.get_xticklabels()):
+        lbl.set_visible(i % 4 == 0)
     ax2.set_title("P_thin Correlation with VPT")
     ax2.set_xlabel("P_thin")
     ax2.legend()
@@ -318,7 +321,8 @@ def create_plots_helper(
         param,
         param_set,
         rhos,
-        p_thins
+        p_thins,
+        c
     ):
     save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -330,8 +334,6 @@ def create_plots_helper(
     diameter_metrics = {k: comp_metrics[k] for k in diameter_keys}
     focus_metrics = {k: comp_metrics[k] for k in focus_keys}
 
-    df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
-    c = df['erdos_renyi_c'][0]
     diam_p_thin_argmax = np.argmax(diameter_metrics['mean_giant_diam'][0, :])
     print(f"diameter argmax", diam_p_thin_argmax)
     p_thin_cs = [p_thins[diam_p_thin_argmax]]
@@ -352,7 +354,17 @@ if __name__ == "__main__":
     home = os.path.expanduser("~")
     results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
-    rhos, p_thins = load_rho_pthin(rho_p_thin_set)
+    rhos_p_thin_dict = {}
+    with open(f'./utils/rho_p_thin_sets/{rho_p_thin_set}.json') as f:
+        rhos_p_thin_dict = json.load(f)
+    rhos = rhos_p_thin_dict['rho']
+    p_thins = rhos_p_thin_dict['p_thin']
+
+    param_dict = {}
+    with open(f'./utils/param_sets/{param_set}.json') as f:
+        param_dict = json.load(f)
+    c = param_dict['erdos_renyi_c'][0]
+
     comp_metrics = get_average_system_metrics(p_thins, rhos, results_path)
     create_plots_helper(
         comp_metrics, 
@@ -361,5 +373,6 @@ if __name__ == "__main__":
         param,
         param_set,
         rhos, 
-        p_thins
+        p_thins,
+        c
     )
