@@ -2,27 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 import matplotlib
-from file_io import get_system_data, remove_system_data
-from helper import parse_arguments, load_rho_pthin
+from file_io import get_average_system_metrics
+from helper import parse_arguments
 from pathlib import Path
 import argparse
 import os
 import pandas as pd
+import json
 import seaborn as sns
 from cycler import cycler
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-return_metrics = lambda mean_values: {
-    "VPT": mean_values[0],
-    "Div_Pos": mean_values[1],
-    # "Div_Der": mean_values[2],
-    # "Div_Spect": mean_values[3],
-    # "Div_Rank": mean_values[4],
-    "Consistency": mean_values[2],
-    # "Giant_Diam": mean_values[6],
-    # "Largest_Diam": mean_values[7],
-    # "Average_Diam": mean_values[8]
-}
 
 
 def create_system_plot(values, ax, title, p_thins, rhos, label_step=4):
@@ -64,8 +53,7 @@ def create_system_plot(values, ax, title, p_thins, rhos, label_step=4):
     plt.colorbar(mesh, cax=cax)
 
 
-def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pearson"):
-    metrics = return_metrics(mean_values)
+def create_correlation_plots(metrics, save_path, rhos, p_thins, method="pearson"):
 
     # Flatten and build dataframe
     df = pd.DataFrame({name: mat.flatten() for name, mat in metrics.items()})
@@ -111,8 +99,7 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pear
     plt.savefig(f"{save_path}{method}_p_thins_correlation_plot.png")
 
 
-def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs, method="pearson"):
-    metrics = return_metrics(mean_values)
+def create_correlation_line_plots(metrics, save_path, rhos, p_thins, p_thin_cs, c, method="pearson"):
 
     row_cors = []
     for i in range(next(iter(metrics.values())).shape[0]):
@@ -130,16 +117,15 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(2*6,1*5))
     for key in metrics.keys():
-        if key == 'VPT':
+        if key == 'mean_vpt':
             continue
-        ax1.plot(rho_indices, [row_cors[i].loc[key, 'VPT'] for i in range(len(rhos))], label=f"{key}")
-        ax2.plot(p_thin_indices, [col_cors[i].loc[key, 'VPT'] for i in range(len(p_thins))], label=f"{key}")
+        ax1.plot(rho_indices, [row_cors[i].loc[key, 'mean_vpt'] for i in range(len(rhos))], label=f"{key}")
+        ax2.plot(p_thin_indices, [col_cors[i].loc[key, 'mean_vpt'] for i in range(len(p_thins))], label=f"{key}")
 
-    # Plot c=1 line (not exact because of shifting and interpolation but close)
-    p_thin_index = np.interp(p_thin_cs[0], p_thins, range(len(p_thins)))
-    ax2.axvline(x=p_thin_index, linestyle='--', linewidth=1, label="c=1")
-    p_thin_index = np.interp(p_thin_cs[1], p_thins, range(len(p_thins)))
-    ax2.axvline(x=p_thin_index, linestyle='--', color='r', linewidth=1, label="c=1.5")
+    # Plot the max diameter line
+    for i, p_thin_c in enumerate(p_thin_cs):
+        p_thin_index = np.interp(p_thin_c, p_thins, range(len(p_thins)))
+        ax2.axvline(x=p_thin_index, linestyle='--', linewidth=1, label=f"c={round(c*(1-p_thin_c),1)}")
     
     # Format tick labels nicely (max 2 decimals)
     rho_labels = [f"{x:.2f}".rstrip('0').rstrip('.') for x in rhos]
@@ -156,6 +142,8 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
     ax1.set_ylabel(f"{method} correlation")
     ax1.legend()
 
+    for i, lbl in enumerate(ax2.get_xticklabels()):
+        lbl.set_visible(i % 4 == 0)
     ax2.set_title("P_thin Correlation with VPT")
     ax2.set_xlabel("P_thin")
     ax2.legend()
@@ -164,7 +152,7 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
     plt.savefig(f"{save_path}{method}_correlation_line_plots.png")
 
 
-def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
+def create_column_linear_plots(metrics, save_path, rhos, p_thins, titles):
 
     def _normalize_minmax(y):
         return (y - np.min(y)) / (np.max(y) - np.min(y))
@@ -184,11 +172,11 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
     colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
 
     for j in range(len(p_thins)):
-        for i in range(len(mean_values)):
+        for i, attr in enumerate(metrics):
             ax = axes[j]
             ax.plot(
                 rho_indices, 
-                _normalize_minmax(mean_values[i][:,j]), 
+                _normalize_minmax(metrics[attr][:,j]), 
                 label=titles[i], 
                 color=colors[i % len(colors)],
                 linestyle=linestyles[i % len(linestyles)]
@@ -211,11 +199,11 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
     colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
 
     for j in range(len(p_thins)):
-        for i in range(len(mean_values)):
+        for i, attr in enumerate(metrics):
             ax = axes[j]
             ax.plot(
                 rho_indices, 
-                np.abs(_normalize_minmax(mean_values[i][:,j])-_normalize_minmax(mean_values[0][:,j])), 
+                np.abs(_normalize_minmax(metrics[attr][:,j])-_normalize_minmax(metrics['mean_vpt'][:,j])), 
                 label=titles[i], 
                 color=colors[i % len(colors)],
                 linestyle=linestyles[i % len(linestyles)]
@@ -238,11 +226,11 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
     colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
 
     for j in range(len(p_thins)):
-        for i in range(len(mean_values)):
+        for i, attr in enumerate(metrics):
             ax = axes[j]
             ax.plot(
                 rho_indices, 
-                np.cumsum(np.abs(_normalize_minmax(mean_values[i][:,j])-_normalize_minmax(mean_values[0][:,j]))), 
+                np.cumsum(np.abs(_normalize_minmax(metrics[attr][:,j])-_normalize_minmax(metrics['mean_vpt'][:,j]))), 
                 label=titles[i], 
                 color=colors[i % len(colors)],
                 linestyle=linestyles[i % len(linestyles)]
@@ -258,23 +246,22 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
     plt.savefig(f"{save_path}p_thin_normalized_cumulative_l1_err_plots.png")
 
 
-def create_diameter_p_thin_plots(mean_diameters, save_path, p_thins, titles):
+def create_diameter_p_thin_plots(metrics, c, save_path, p_thins, titles):
     p_thin_indices = range(len(p_thins))
     p_thin_labels = [f"{x:.3f}".rstrip('0').rstrip('.') for x in p_thins]
 
     # compute c values from p_thin
-    c_values = [10 * (1 - p) for p in p_thins]
+    c_values = [c * (1 - p) for p in p_thins]
     c_labels = [f"{c:.2f}".rstrip('0').rstrip('.') for c in c_values]
 
     fig, ax = plt.subplots(figsize=(8, 8))
 
     # main plots
-    ax.plot(mean_diameters[0][0, :], label=titles[0])
-    ax.plot(mean_diameters[1][0, :], label=titles[1])
-    ax.plot(mean_diameters[2][0, :], label=titles[2])
+    ax.plot(metrics['mean_giant_diam'][0, :], label=titles[0])
+    ax.plot(metrics['mean_average_diam'][0, :], label=titles[1])
 
     # vertical line at max diameter
-    argmax_p_thin = np.argmax(mean_diameters[0][0, :])
+    argmax_p_thin = np.argmax(metrics['mean_giant_diam'][0, :])
     ax.axvline(x=argmax_p_thin, linestyle='--', linewidth=1, label="max diameter")
 
     # bottom x-axis: p_thin
@@ -289,7 +276,7 @@ def create_diameter_p_thin_plots(mean_diameters, save_path, p_thins, titles):
     ax_top.set_xlim(ax.get_xlim())  # keep alignment
     ax_top.set_xticks(p_thin_indices)
     ax_top.set_xticklabels(c_labels)
-    ax_top.set_xlabel(r"$c = 10(1 - p_{\mathrm{thin}})$")
+    ax_top.set_xlabel(r"$c = max_c(1 - p_{\mathrm{thin}})$")
 
     for i, lbl in enumerate(ax.get_xticklabels()):
         lbl.set_visible(i % 8 == 0)
@@ -304,51 +291,58 @@ def create_diameter_p_thin_plots(mean_diameters, save_path, p_thins, titles):
     plt.show()
 
 
-def create_plots(
-        mean_values, 
-        thresholds, 
-        titles,
-        cutoff,
-        rho_p_thin_set,
+def create_metric_mean_plots(
+        metrics,
         param_name,
         param,
-        param_set,
-        rhos=[],
-        p_thins=[]
+        param_set, 
+        p_thins, 
+        rhos, 
+        save_path
     ):
-    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-    diam_cutoff = 6
-
-    num_plots = diam_cutoff
+    num_plots = len(metrics.keys())
     num_rows = int(np.sqrt(num_plots))
     num_cols = int(num_plots / num_rows) + 1
     fig, axs = plt.subplots(num_rows, num_cols, figsize=(num_cols*12,num_rows*10))
 
-    for i in range(diam_cutoff):
-        if cutoff:
-            mean_values[i][mean_values[i] > thresholds[i]] = 0
-        create_system_plot(mean_values[i], axs.flatten()[i], titles[i], p_thins=p_thins, rhos=rhos)
+    for i, attr in enumerate(metrics):
+        create_system_plot(metrics[attr], axs.flatten()[i], attr, p_thins, rhos)
 
     plt.suptitle(f'{param_name}: {param}, {param_set}, {rho_p_thin_set}')
     plt.tight_layout()
     plt.savefig(f"{save_path}mean_plots.png")
 
-    df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
-    c = df['erdos_renyi_c'][0]
-    p_thin_cs = [(1-1./c), (1-1.5/c)]
-    print(f"\np_thin_cs: {p_thin_cs} \n")
 
-    # Plot only for VPT, div_pos, and consistency
-    indices = [0,1,5]
-    focused_values = [mean_values[i] for i in indices]
-    focused_titles = [titles[i] for i in indices]
+def create_plots_helper(
+        comp_metrics,
+        rho_p_thin_set,
+        param_name,
+        param,
+        param_set,
+        rhos,
+        p_thins,
+        c
+    ):
+    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-    create_correlation_plots(focused_values, save_path, rhos, p_thins)
-    create_correlation_line_plots(focused_values, save_path, rhos, p_thins, p_thin_cs)
-    create_column_linear_plots(focused_values, save_path, rhos, p_thins, focused_titles)
-    create_diameter_p_thin_plots(mean_values[diam_cutoff:], save_path, p_thins, titles[diam_cutoff:])
+    diameter_keys = ['mean_average_diam', 'mean_giant_diam']
+    focus_keys = ['mean_vpt', 'mean_div_pos', 'mean_div_der', 'mean_div_spect', 
+                     'mean_div_spect', 'mean_consistency_correlation']
+    
+    diameter_metrics = {k: comp_metrics[k] for k in diameter_keys}
+    focus_metrics = {k: comp_metrics[k] for k in focus_keys}
+
+    diam_p_thin_argmax = np.argmax(diameter_metrics['mean_giant_diam'][0, :])
+    print(f"diameter argmax", diam_p_thin_argmax)
+    p_thin_cs = [p_thins[diam_p_thin_argmax]]
+
+    create_metric_mean_plots(focus_metrics, param_name, param, param_set, p_thins, rhos, save_path)
+    create_correlation_plots(focus_metrics, save_path, rhos, p_thins)
+    create_correlation_line_plots(focus_metrics, save_path, rhos, p_thins, p_thin_cs, c)
+    create_diameter_p_thin_plots(diameter_metrics, c, save_path, p_thins, diameter_keys)
+    create_column_linear_plots(focus_metrics, save_path, rhos, p_thins, focus_keys)
 
 
 if __name__ == "__main__":
@@ -360,23 +354,25 @@ if __name__ == "__main__":
     home = os.path.expanduser("~")
     results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
-    rhos, p_thins = load_rho_pthin(rho_p_thin_set)
-    mean_values = get_system_data(p_thins, rhos, results_path)
-    create_plots(
-        mean_values, 
-        [3, 10, 10, 10, 10, 10], 
-        ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency', 'Giant Diameter', 'Largest Diameter', 'Average Diameter'], 
-        False, 
+    rhos_p_thin_dict = {}
+    with open(f'./utils/rho_p_thin_sets/{rho_p_thin_set}.json') as f:
+        rhos_p_thin_dict = json.load(f)
+    rhos = rhos_p_thin_dict['rho']
+    p_thins = rhos_p_thin_dict['p_thin']
+
+    param_dict = {}
+    with open(f'./utils/param_sets/{param_set}.json') as f:
+        param_dict = json.load(f)
+    c = param_dict['erdos_renyi_c'][0]
+
+    comp_metrics = get_average_system_metrics(p_thins, rhos, results_path)
+    create_plots_helper(
+        comp_metrics, 
         rho_p_thin_set,
         param_name,
         param,
         param_set,
         rhos, 
-        p_thins
+        p_thins,
+        c
     )
-
-    # Delete unnecessary files:
-    # remove_system_data(results_path)
-
-    # path = '/nobackup/autodelete/usr/seyfdall/network_theory/thinned_rescomp/results_single_param_tests/'
-    # create_multi_run_plots(path, rhos, p_thins)
