@@ -2,6 +2,7 @@ import numpy as np
 import itertools
 import argparse
 import pandas as pd
+import networkx as nx
 
 from scipy.interpolate import CubicSpline
 
@@ -28,8 +29,6 @@ def parse_arguments():
     
     args = parser.parse_args()
     return args.rho_p_thin_set, args.param, args.param_name, args.param_set
-
-
 
 """
 Gridsearch Parameter Setup
@@ -112,3 +111,7 @@ def remove_edges(A,n_edges):
     for e in remove:
         B[e] = 0
     return B
+
+def get_network(A):
+    G = nx.from_scipy_sparse_array(A, create_using=nx.DiGraph)
+    return G

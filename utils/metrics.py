@@ -1,6 +1,7 @@
 import numpy as np
 from math import comb
 from scipy.sparse.linalg import svds
+import networkx as nx
 
 """
 Metrics
@@ -265,3 +266,19 @@ def consistency_analysis_pearson(x, y, transient_cutoff=3000, alpha=1e-9):
     cap = np.sum(x*y) / (N*L)
 
     return cap
+
+
+#GRAPH STRUCTURE METRICS
+
+def num_driving(G):
+    C = nx.condensation(G)  # condensation collapeses a network into its scc and their connections (1 if there is any connection between them)
+    node_to_scc = C.graph['mapping']
+    drivers = [node_to_scc[u] != node_to_scc[v] for u, v in G.edges()]
+    return sum(drivers)
+
+def fraction_driving(G):
+    return num_driving(G) / len(G.nodes())
+
+def component_sizes(G):
+    component_sizes = np.array([len(component) for component in nx.strongly_connected_components(G)])
+    return component_sizes

@@ -151,7 +151,9 @@ def create_rescomp_datasets_template(
         vpt = [],
         pred = [],
         err = [],
-        consistency_correlation = []
+        consistency_correlation = [],
+        component_distribution = [],
+        fraction_driving = []
     ):
     """ Template to create attributes/datasets object for hdf5 file groups """
 
@@ -163,7 +165,9 @@ def create_rescomp_datasets_template(
         "vpt": vpt,
         "pred": pred,
         "err": err,
-        "consistency_correlation": consistency_correlation
+        "consistency_correlation": consistency_correlation,
+        "component_distribution": component_distribution,
+        "fraction_driving": fraction_driving
     }
 
 

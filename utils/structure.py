@@ -30,7 +30,15 @@ def main():
     home = os.path.expanduser("~")
     results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
-    #TODO write function on the driver python file to do the structural analysis
+    driver.rescomp_parallel_uniform_gridsearch_h5(
+        erdos_possible_combinations, 
+        rho,
+        p_thin,
+        draw_count=100000, 
+        hdf5_file_path=results_path, 
+        tf=7200,
+        structural_analysis=True
+    )
     
 
 

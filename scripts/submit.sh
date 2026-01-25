@@ -94,7 +94,7 @@ while getopts "svg" opt; do
                 echo "Submitting job array of size $total_jobs (=$num_rho×$num_pthin) at increments of 10."
 
                 echo "Submitting job array"  
-                sbatch --array=0-$((total_jobs - 1)):10 --export=ALL,RHO_P_THIN_SET=$RHO_P_THIN_SET,PARAM_SET=$PARAM_SET,PARAM_NAME=$PARAM_NAME,PARAM_VALUE=$PARAM_VALUE scripts/simulations_array.sh
+                sbatch --array=0-$((total_jobs - 1)):10 --export=ALL,RHO_P_THIN_SET=$RHO_P_THIN_SET,PARAM_SET=$PARAM_SET,PARAM_NAME=$PARAM_NAME,PARAM_VALUE=$PARAM_VALUE scripts/structure_array.sh
                 
             done < scripts/vars.txt
             ;;
