@@ -43,6 +43,56 @@ signal.signal(signal.SIGTERM, handle_sigterm)  # scancel
 # signal.signal(signal.SIGUSR1, handle_usr1)     # timeout warning (needs #SBATCH --signal)
 
 
+def drive_structural_analysis(
+        tol,
+        t_train,
+        t_test,
+        U_train,
+        U_test,
+        rho,
+        p_thin,
+        param_set
+    ):
+    """Inner for loop work here - run a single reservoir and perform analysis"""
+
+    print("param_set:", param_set)
+
+    n, erdos_c, gamma, sigma, alpha = param_set
+
+    # Template for datasets
+    datasets = create_rescomp_datasets_template()
+
+    # Generate thinned networks
+    mean_degree = erdos_c*(1-p_thin)
+    if mean_degree < 0.0:
+        mean_degree = 0.0
+    
+    res_thinned = ResComp.ResComp(res_sz=n, mean_degree=mean_degree, 
+                                ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
+                                gamma=gamma, map_initial='activ_f')       
+
+    print("Train")       
+    res_thinned.train(t_train, U_train)
+
+    print("Forecast and predict")
+    U_pred = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)[0]
+    error = np.linalg.norm(U_test - U_pred, axis=1)
+    vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
+
+    #TODO capture the statistics from the graph of the reservoir
+    datasets['pred'].append(U_pred)
+    datasets['err'].append(error)
+    datasets['vpt'].append(vpt)
+
+
+
+    mean_attrs = generate_rescomp_means(datasets)
+
+    print("Mean_attrs:", mean_attrs)
+
+    return mean_attrs, datasets
+
+
 def drive_reservoir_analysis(
         tol,
         t_train,
@@ -112,6 +162,7 @@ def drive_reservoir_analysis(
     return mean_attrs, datasets
 
 
+
 """
 Uniform Sampling Gridsearch
 """
@@ -123,7 +174,8 @@ def rescomp_parallel_uniform_gridsearch_h5(
         system='lorenz', 
         draw_count=50, 
         tf=144000, 
-        hdf5_file_path="results/erdos_results.h5"
+        hdf5_file_path="results/erdos_results.h5",
+        structural_analysis = False
     ):
     """ Run the gridsearch over possible combinations """
 
@@ -152,7 +204,10 @@ def rescomp_parallel_uniform_gridsearch_h5(
             n, erdos_c, gamma, sigma, alpha = erdos_possible_combinations[param_set_index]
 
             try:
-                mean_attrs, datasets = drive_reservoir_analysis(tol, t_train, t_test, U_train, 
+                if structural_analysis:
+                    raise NotImplementedError()
+                else:
+                    mean_attrs, datasets = drive_reservoir_analysis(tol, t_train, t_test, U_train, 
                                                                     U_test, rho, p_thin, erdos_possible_combinations[param_set_index])
 
             except ArpackNoConvergence as e: # Occasionally sparse linalg eigs isn't able to converge
@@ -187,3 +242,4 @@ def rescomp_parallel_uniform_gridsearch_h5(
 
 
         file_handler.save_attrs()
+    

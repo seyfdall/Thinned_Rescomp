@@ -29,5 +29,5 @@ END=$((START + CHUNK_SIZE - 1))
 for (( i=START; i<=END; i++ )); do
     echo $i
     export ID_TO_PROCESS=$i
-    python3 main.py -r "$RHO_P_THIN_SET" -p "$PARAM_VALUE" -p_name "$PARAM_NAME" -p_set "$PARAM_SET"
+    python3 utils/structure.py -r "$RHO_P_THIN_SET" -p "$PARAM_VALUE" -p_name "$PARAM_NAME" -p_set "$PARAM_SET"
 done
