@@ -143,32 +143,27 @@ class GroupIOHandler:
         return self.datasets.get(name)
     
 
+#to add a new dataset template you must change this function's declaration
 def create_rescomp_datasets_template(
-        div_der = [], 
-        div_pos = [], 
-        div_spect = [],
-        div_rank = [],
-        vpt = [],
-        pred = [],
-        err = [],
-        consistency_correlation = [],
-        component_distribution = [],
-        fraction_driving = []
+        attributes = None,
+        **kwargs,
     ):
     """ Template to create attributes/datasets object for hdf5 file groups """
 
-    return {
-        "div_der": div_der, 
-        "div_pos": div_pos,
-        "div_spect": div_spect,
-        "div_rank": div_rank,
-        "vpt": vpt,
-        "pred": pred,
-        "err": err,
-        "consistency_correlation": consistency_correlation,
-        "component_distribution": component_distribution,
-        "fraction_driving": fraction_driving
-    }
+
+    #safe default mutable argument
+    if attributes is None:
+        attributes = ["div_der", "div_pos", "div_spect", "div_rank", "vpt", "pred", "err", "consistency_correlation"]
+        
+    if not kwargs.keys():
+        #no keyword arguments, then set all attributes to empty
+        template = {attribute: [] for attribute in attributes}
+        return template
+
+    #we have attributes passed and keyword arguments overriding their defaults, make sure they contain the same amount
+    assert set(kwargs.keys()) == set(attributes), f"Keyword arguments and attributes must match. Attributes - {attributes}, Keywords - {list(kwargs.keys())}"
+    template = {attribute: kwargs[attribute] for attribute in attributes}
+    return template
 
 
 def generate_rescomp_means(datasets):

@@ -19,9 +19,10 @@ import ResComp
 """
 Import Helper functions
 """
-from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson, component_sizes, fraction_driving
+from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson
 from file_io import HDF5FileHandler, create_rescomp_datasets_template, generate_rescomp_means
-from helper import get_orbit, get_network
+from helper import get_orbit
+from structure import drive_structural_analysis
 
 
 # Global flag to stop gracefully
@@ -111,58 +112,6 @@ def drive_reservoir_analysis(
 
     return mean_attrs, datasets
 
-def drive_structural_analysis(
-        tol,
-        t_train,
-        t_test,
-        U_train,
-        U_test,
-        rho,
-        p_thin,
-        param_set
-    ):
-    """Inner for loop work here - run a single reservoir and perform analysis"""
-
-    print("param_set:", param_set)
-
-    n, erdos_c, gamma, sigma, alpha = param_set
-
-    # Template for datasets
-    datasets = create_rescomp_datasets_template()
-
-    # Generate thinned networks
-    mean_degree = erdos_c*(1-p_thin)
-    if mean_degree < 0.0:
-        mean_degree = 0.0
-    
-    res_thinned = ResComp.ResComp(res_sz=n, mean_degree=mean_degree, 
-                                ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
-                                gamma=gamma, map_initial='activ_f')
-
-    adj_matrix = res_thinned.res
-
-    print("Train")       
-    res_thinned.train(t_train, U_train)
-
-    print("Forecast and predict")
-    U_pred = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)[0]
-    vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
-
-    #structural components
-    G = get_network(adj_matrix)
-
-    component_dist = component_sizes(G)
-    frac_drive = fraction_driving(G)
-
-    datasets['vpt'].append(vpt)
-    datasets['component_distribution'].append(component_dist)
-    datasets['fraction_driving'].append(frac_drive)
-
-    mean_attrs = generate_rescomp_means(datasets)
-
-    print("Mean_attrs:", mean_attrs)
-
-    return mean_attrs, datasets
 
 """
 Uniform Sampling Gridsearch
