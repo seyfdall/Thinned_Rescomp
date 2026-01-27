@@ -210,69 +210,86 @@ Example Usage:
 """
 
 
-
-
 """
 Reading from the files
 """
 
-def get_file_data(hdf5_file='results/erdos_results_0.h5'):
-    """
-    
-    """
+def get_file_data(
+        hdf5_file='results/erdos_results_0.h5', 
+        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_distribution','mean_fraction_driving']
+    ):
 
     with h5py.File(hdf5_file, 'r') as file:
-        vpt_list = []
-        div_pos_list = []
-        div_der_list = []
-        div_spect_list = []
-        div_rank_list = []
-        consistency_list = []
+
+        lists = {k: [] for k in wanted_attributes}
 
         for group_name in file.keys():
             group = file[group_name]
             if 'mean_vpt' not in list(group.attrs):
                 continue
-            vpt_list.append(group.attrs['mean_vpt'])
-            div_pos_list.append(group.attrs['mean_div_pos'])
-            div_der_list.append(group.attrs['mean_div_der'])
-            div_spect_list.append(group.attrs['mean_div_spect'])
-            div_rank_list.append(group.attrs['mean_div_rank'])
-            consistency_list.append(group.attrs['mean_consistency_correlation'])
+
+            for k in wanted_attributes:
+                # wanted attributes must match the exact spelling in the group.attrs otherwise an error will be thrown
+                lists[k].append(group.attrs[k])
+            
             # print('{}, c: {}, vpt_connected: {}, p_thin: {}, vpt_thinned: {}'.format(group_name, c, vpt_connected, p_thin, vpt_thinned))
         # print('vpt_connected_average: {}, vpt_thinned_average: {}'.format(np.mean(vpt_connected_list), np.mean(vpt_thinned_list)))
         
-        mean_vpt = np.mean(vpt_list)
-        mean_div_pos = np.mean(div_pos_list)
-        mean_div_der = np.mean(div_der_list)
-        mean_div_spect = np.mean(div_spect_list)
-        mean_div_rank = np.mean(div_rank_list)
-        mean_consistency = np.mean(consistency_list)
-        print(f"Number of draws successfully made for {hdf5_file}: {len(vpt_list)}")
-        print(f"Mean diversity: {mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank}")
+        means = {key: np.mean(value) for key, value in lists.items()}
+        print(f"Number of draws successfully made for {hdf5_file}: {len(lists['mean_vpt'])}")
+        print(f"Mean diversity: {lists['mean_div_pov'], lists['mean_div_der'], lists['mean_div_spect'], lists['mean_div_rank']}")
         
-        return mean_vpt, mean_div_pos, mean_div_der, mean_div_spect, mean_div_rank, mean_consistency
+        return means
     
 
-def get_system_data(p_thins, rhos, results_path):
-    """
-    
-    """
-    mean_vpts = np.zeros((len(rhos), len(p_thins)))
-    mean_pos_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_der_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_spect_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_rank_divs = np.zeros((len(rhos), len(p_thins)))
-    mean_consistencies = np.zeros((len(rhos), len(p_thins)))
+def get_system_data(
+        p_thins, 
+        rhos, 
+        results_path, 
+        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_distribution','mean_fraction_driving']
+        ):
+
+
+    mean_arrays = {attribute: np.zeros((len(rhos), len(p_thins))) for attribute in wanted_attributes}
 
     for i, rho in enumerate(rhos):
         for j, p_thin in enumerate(p_thins):
             hdf5_file = results_path + f"_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5"
-            mean_vpts[i,j], mean_pos_divs[i,j], mean_der_divs[i,j], mean_spect_divs[i,j], mean_rank_divs[i,j], mean_consistencies[i,j] = get_file_data(hdf5_file=hdf5_file)
-            print("VPT", mean_vpts[i,j])
+            means = get_file_data(hdf5_file=hdf5_file, wanted_attributes=wanted_attributes)
+            #check to make sure we don't have extra attributes and we are not silently ignoring not assigning attributes
+            assert set(means) == set(wanted_attributes), f"Expected {wanted_attributes}, got {list(means)}"
+            
+            for attribute in wanted_attributes:
+                mean_arrays[attribute][i, j] = means[attribute]
+            print("VPT", mean_arrays['mean_vpt'][i,j])
 
-    print(f"Overall: {np.max(mean_consistencies), np.min(mean_consistencies)}")
-    return mean_vpts, mean_pos_divs, mean_der_divs, mean_spect_divs, mean_rank_divs, mean_consistencies
+    print(f"Overall: {np.max(mean_arrays['mean_consistency_correlation']), np.min(mean_arrays['mean_consistency_correlation'])}")
+    return tuple(mean_arrays[attribute] for attribute in wanted_attributes)
+
+def get_system_data_dict(
+        p_thins, 
+        rhos, 
+        results_path, 
+        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_distribution','mean_fraction_driving']
+        ):
+
+
+    mean_arrays = {attribute: np.zeros((len(rhos), len(p_thins))) for attribute in wanted_attributes}
+
+    for i, rho in enumerate(rhos):
+        for j, p_thin in enumerate(p_thins):
+            hdf5_file = results_path + f"_rho={round(rho,2)}_p_thin={round(p_thin,2)}.h5"
+            means = get_file_data(hdf5_file=hdf5_file, wanted_attributes=wanted_attributes)
+            #check to make sure we don't have extra attributes and we are not silently ignoring not assigning attributes
+            assert set(means) == set(wanted_attributes), f"Expected {wanted_attributes}, got {list(means)}"
+            
+            for attribute in wanted_attributes:
+                mean_arrays[attribute][i, j] = means[attribute]
+            print("VPT", mean_arrays['mean_vpt'][i,j])
+
+    print(f"Overall: {np.max(mean_arrays['mean_consistency_correlation']), np.min(mean_arrays['mean_consistency_correlation'])}")
+    return mean_arrays
+
 
 
 def remove_system_data(results_path):
@@ -281,3 +298,6 @@ def remove_system_data(results_path):
     """
     for file_path in glob(f'{results_path}*.h5'):
         os.remove(file_path)
+
+
+
