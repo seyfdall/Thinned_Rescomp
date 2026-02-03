@@ -189,10 +189,6 @@ def rescomp_parallel_uniform_gridsearch_h5(
             group_handler = file_handler.get_group_handler(f"set_{i}", n=n, erdos_c=erdos_c, gamma=gamma, sigma=sigma, alpha=alpha)
             group_handler.add_attrs(**mean_attrs)
 
-            if structural_analysis:
-                #for structural analysis we want to examine the actual graphs at each run, not just the mean values
-                group_handler.add_datasets(**datasets) # Caution: High Storage requirement to store datasets and generally not required for analysis
-
             group_handler.save_data()
 
 

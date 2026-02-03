@@ -90,7 +90,6 @@ class HDF5FileHandler:
         self.close_file()
 
 
-
 class GroupIOHandler:
     def __init__(self, h5file, group_name, **kwargs):
         self.attrs = {}
@@ -211,7 +210,7 @@ Reading from the files
 
 def get_file_data(
         hdf5_file='results/erdos_results_0.h5', 
-        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_distribution','mean_fraction_driving']
+        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_size','mean_fraction_driving']
     ):
 
     with h5py.File(hdf5_file, 'r') as file:
@@ -241,7 +240,7 @@ def get_system_data(
         p_thins, 
         rhos, 
         results_path, 
-        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_distribution','mean_fraction_driving']
+        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_size','mean_fraction_driving']
         ):
 
 
@@ -265,9 +264,8 @@ def get_system_data_dict(
         p_thins, 
         rhos, 
         results_path, 
-        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_distribution','mean_fraction_driving']
+        wanted_attributes=['mean_vpt','mean_div_pos','mean_div_der','mean_div_spect','mean_div_rank','mean_consistency_correlation','mean_component_size','mean_fraction_driving']
         ):
-
 
     mean_arrays = {attribute: np.zeros((len(rhos), len(p_thins))) for attribute in wanted_attributes}
 
@@ -284,7 +282,6 @@ def get_system_data_dict(
 
     print(f"Overall: {np.max(mean_arrays['mean_consistency_correlation']), np.min(mean_arrays['mean_consistency_correlation'])}")
     return mean_arrays
-
 
 
 def remove_system_data(results_path):

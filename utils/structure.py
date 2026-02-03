@@ -32,7 +32,7 @@ def drive_structural_analysis(
     n, erdos_c, gamma, sigma, alpha = param_set
 
     # Template for datasets
-    datasets = create_rescomp_datasets_template()
+    datasets = create_rescomp_datasets_template(attributes=['vpt', 'component_size', 'fraction_driving'])
 
     # Generate thinned networks
     mean_degree = erdos_c*(1-p_thin)
@@ -59,7 +59,7 @@ def drive_structural_analysis(
     frac_drive = fraction_driving(G)
 
     datasets['vpt'].append(vpt)
-    datasets['component_distribution'].append(component_dist)
+    datasets['component_size'].append(component_dist)
     datasets['fraction_driving'].append(frac_drive)
 
     mean_attrs = generate_rescomp_means(datasets)

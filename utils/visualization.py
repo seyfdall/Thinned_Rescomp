@@ -247,6 +247,9 @@ def create_plots(
 
 
 if __name__ == "__main__":
+
+    #TODO update the visualization code to get the visualizations I want for the structural analysis
+    #TODO think of the visualizations I need/want and what I actually have stored and what I can do with it
     """
     Post-Processing Visual Analysis on results
     """
@@ -256,11 +259,11 @@ if __name__ == "__main__":
     results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
     rhos, p_thins = load_rho_pthin(rho_p_thin_set)
-    mean_values = get_system_data(p_thins, rhos, results_path)
+    mean_values = get_system_data(p_thins, rhos, results_path, wanted_attributes=['mean_vpt', 'mean_component_size', 'mean_fraction_driving'])
     create_plots(
-        mean_values, 
+        mean_values,
         [3, 10, 10, 10, 10, 10], 
-        ['VPT', 'Div_Pos', 'Div_Der', 'Div_Spect', 'Div_Rank', 'Consistency'], 
+        ['VPT', 'Component Size', 'Fraction Driving'], 
         False, 
         rho_p_thin_set,
         param_name,
