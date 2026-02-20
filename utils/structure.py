@@ -1,8 +1,8 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(f'{os.getcwd()}/utils/'))
-import utils.helper as helper
-import utils.driver as driver
+import helper as helper
+import driver as driver
 
 from metrics import vpt_time, component_sizes, fraction_driving
 from file_io import create_rescomp_datasets_template, generate_rescomp_means

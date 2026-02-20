@@ -2,6 +2,7 @@
 
 script_to_run=''
 
+# must be run from the Thinned_Rescomp Folder
 while getopts "svg" opt; do
     case $opt in
         s)
@@ -95,6 +96,8 @@ while getopts "svg" opt; do
 
                 echo "Submitting job array"  
                 sbatch --array=0-$((total_jobs - 1)):10 --export=ALL,RHO_P_THIN_SET=$RHO_P_THIN_SET,PARAM_SET=$PARAM_SET,PARAM_NAME=$PARAM_NAME,PARAM_VALUE=$PARAM_VALUE scripts/structure_array.sh
+                # Sleep to not overload the job scheduler
+                sleep 60
                 
             done < scripts/vars.txt
             ;;

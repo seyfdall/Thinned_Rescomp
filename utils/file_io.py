@@ -231,7 +231,9 @@ def get_file_data(
         
         means = {key: np.mean(value) for key, value in lists.items()}
         print(f"Number of draws successfully made for {hdf5_file}: {len(lists['mean_vpt'])}")
-        print(f"Mean diversity: {lists['mean_div_pov'], lists['mean_div_der'], lists['mean_div_spect'], lists['mean_div_rank']}")
+
+        #TODO remove this comment so it prints the diversities
+        #print(f"Mean diversity: {lists['mean_div_pov'], lists['mean_div_der'], lists['mean_div_spect'], lists['mean_div_rank']}")
         
         return means
     
@@ -257,7 +259,7 @@ def get_system_data(
                 mean_arrays[attribute][i, j] = means[attribute]
             print("VPT", mean_arrays['mean_vpt'][i,j])
 
-    print(f"Overall: {np.max(mean_arrays['mean_consistency_correlation']), np.min(mean_arrays['mean_consistency_correlation'])}")
+    #print(f"Overall: {np.max(mean_arrays['mean_consistency_correlation']), np.min(mean_arrays['mean_consistency_correlation'])}")
     return tuple(mean_arrays[attribute] for attribute in wanted_attributes)
 
 def get_system_data_dict(
@@ -280,7 +282,7 @@ def get_system_data_dict(
                 mean_arrays[attribute][i, j] = means[attribute]
             print("VPT", mean_arrays['mean_vpt'][i,j])
 
-    print(f"Overall: {np.max(mean_arrays['mean_consistency_correlation']), np.min(mean_arrays['mean_consistency_correlation'])}")
+    #print(f"Overall: {np.max(mean_arrays['mean_consistency_correlation']), np.min(mean_arrays['mean_consistency_correlation'])}")
     return mean_arrays
 
 

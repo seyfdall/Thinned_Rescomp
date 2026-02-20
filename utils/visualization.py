@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 import matplotlib
-from file_io import get_system_data, remove_system_data
+from file_io import get_system_data, remove_system_data, get_system_data_dict
 from helper import parse_arguments, load_rho_pthin
 from pathlib import Path
 import argparse
@@ -47,21 +47,14 @@ def create_system_plot(values, ax, title, p_thins=[], rhos=[]):
     # Reduce visible x-axis labels
     labels = ax.get_xticklabels()
     for i, label in enumerate(labels):
-        if i % 3 != 0:  # Show every 3rd label
+        if i % 10 != 0:  # Show every 10th label
             label.set_visible(False)
     
     plt.colorbar(mappable=sm, ax=ax)
 
 
 def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pearson"):
-    metrics = {
-        "VPT": mean_values[0],
-        "Div_Pos": mean_values[1],
-        "Div_Der": mean_values[2],
-        "Div_Spect": mean_values[3],
-        "Div_Rank": mean_values[4],
-        "Consistency": mean_values[5]
-    }
+    metrics = mean_values
 
     # Flatten and build dataframe
     df = pd.DataFrame({name: mat.flatten() for name, mat in metrics.items()})
@@ -108,14 +101,7 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pear
 
 
 def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs, method="pearson"):
-    metrics = {
-        "VPT": mean_values[0],
-        "Div_Pos": mean_values[1],
-        "Div_Der": mean_values[2],
-        "Div_Spect": mean_values[3],
-        "Div_Rank": mean_values[4],
-        "Consistency": mean_values[5]
-    }
+    metrics = mean_values
 
     row_cors = []
     for i in range(next(iter(metrics.values())).shape[0]):
@@ -133,10 +119,10 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(2*6,1*5))
     for key in metrics.keys():
-        if key == 'VPT':
+        if key == 'mean_vpt':
             continue
-        ax1.plot(rho_indices, [row_cors[i].loc[key, 'VPT'] for i in range(len(rhos))], label=f"{key}")
-        ax2.plot(p_thin_indices, [col_cors[i].loc[key, 'VPT'] for i in range(len(p_thins))], label=f"{key}")
+        ax1.plot(rho_indices, [row_cors[i].loc[key, 'mean_vpt'] for i in range(len(rhos))], label=f"{key}")
+        ax2.plot(p_thin_indices, [col_cors[i].loc[key, 'mean_vpt'] for i in range(len(p_thins))], label=f"{key}")
 
     # Plot c=1 line (not exact because of shifting and interpolation but close)
     p_thin_index = np.interp(p_thin_cs[0], p_thins, range(len(p_thins)))
@@ -153,6 +139,12 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
     ax1.set_xticklabels(rho_labels, rotation=45, ha='right')
     ax2.set_xticks(p_thin_indices)
     ax2.set_xticklabels(pthin_labels, rotation=45, ha='right')
+
+    # Reduce visible x-axis labels for the pthin
+    labels = ax2.get_xticklabels()
+    for i, label in enumerate(labels):
+        if i % 10 != 0:  # Show every 10th label
+            label.set_visible(False)
         
     ax1.set_title("Rho Correlation with VPT")
     ax1.set_xlabel("Rho")
@@ -162,6 +154,9 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
     ax2.set_title("P_thin Correlation with VPT")
     ax2.set_xlabel("P_thin")
     ax2.legend()
+
+
+
 
     plt.tight_layout()
     plt.savefig(f"{save_path}{method}_correlation_line_plots.png")
@@ -207,6 +202,7 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
     plt.savefig(f"{save_path}p_thin_normalized_plots.png")
 
 
+#expects tuple input
 def create_plots(
         mean_values, 
         thresholds, 
@@ -236,14 +232,14 @@ def create_plots(
     plt.tight_layout()
     plt.savefig(f"{save_path}mean_plots.png")
 
-    df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
-    c = df['erdos_renyi_c'][0]
-    p_thin_cs = [(1-1./c), (1-1.5/c)]
-    print(f"\np_thin_cs: {p_thin_cs} \n")
+    #df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
+    #c = df['erdos_renyi_c'][0]
+   #p_thin_cs = [(1-1./c), (1-1.5/c)]
+    #print(f"\np_thin_cs: {p_thin_cs} \n")
 
-    create_correlation_plots(mean_values, save_path, rhos, p_thins)
-    create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs)
-    create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles)
+    #create_correlation_plots(mean_values, save_path, rhos, p_thins)
+    #create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs)
+    #create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles)
 
 
 if __name__ == "__main__":
@@ -254,16 +250,28 @@ if __name__ == "__main__":
     Post-Processing Visual Analysis on results
     """
     rho_p_thin_set, param, param_name, param_set = parse_arguments()
+    wanted_attributes = ['mean_vpt', 'mean_component_size', 'mean_fraction_driving']
 
     home = os.path.expanduser("~")
     results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     rhos, p_thins = load_rho_pthin(rho_p_thin_set)
-    mean_values = get_system_data(p_thins, rhos, results_path, wanted_attributes=['mean_vpt', 'mean_component_size', 'mean_fraction_driving'])
+    mean_values_dict = get_system_data_dict(p_thins, rhos, results_path, wanted_attributes=wanted_attributes)
+
+    create_correlation_line_plots(
+        mean_values_dict,
+        save_path,
+        rhos,
+        p_thins,
+        p_thin_cs=[1, 1.5]
+    )
+
     create_plots(
-        mean_values,
+        tuple(mean_values_dict.values()),
         [3, 10, 10, 10, 10, 10], 
-        ['VPT', 'Component Size', 'Fraction Driving'], 
+        wanted_attributes, 
         False, 
         rho_p_thin_set,
         param_name,
@@ -272,6 +280,8 @@ if __name__ == "__main__":
         rhos, 
         p_thins
     )
+
+
 
     # Delete unnecessary files:
     # remove_system_data(results_path)

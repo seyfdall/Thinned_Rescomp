@@ -1,8 +1,8 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(f'{os.getcwd()}/utils/'))
-import utils.helper as helper
-import utils.driver as driver
+import helper
+import driver
 
 """
 Main Method to call the Gridsearch
