@@ -156,8 +156,6 @@ def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_
     ax2.legend()
 
 
-
-
     plt.tight_layout()
     plt.savefig(f"{save_path}{method}_correlation_line_plots.png")
 
@@ -250,6 +248,8 @@ if __name__ == "__main__":
     Post-Processing Visual Analysis on results
     """
     rho_p_thin_set, param, param_name, param_set = parse_arguments()
+    df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
+    original_c = df['erdos_renyi_c'][0]
     wanted_attributes = ['mean_vpt', 'mean_component_size', 'mean_fraction_driving']
 
     home = os.path.expanduser("~")
@@ -260,12 +260,16 @@ if __name__ == "__main__":
     rhos, p_thins = load_rho_pthin(rho_p_thin_set)
     mean_values_dict = get_system_data_dict(p_thins, rhos, results_path, wanted_attributes=wanted_attributes)
 
+    #on the correlation line plots, used for plotting important mean degree values as we thin
+    c_plot_values = [1, 1.5]
+    p_thin_cs = [1-c/original_c for c in c_plot_values]
+
     create_correlation_line_plots(
         mean_values_dict,
         save_path,
         rhos,
         p_thins,
-        p_thin_cs=[1, 1.5]
+        p_thin_cs=p_thin_cs
     )
 
     create_plots(
