@@ -282,3 +282,15 @@ def fraction_driving(G):
 def component_sizes(G):
     component_sizes = np.array([len(component) for component in nx.strongly_connected_components(G)])
     return component_sizes
+
+def max_diameter(G):
+    component_function = nx.strongly_connected_components if nx.is_directed(G) else nx.connected_components
+    max_component = max(component_function(G), key=len)
+    diameter = nx.diameter(G.subgraph(max_component))
+    return diameter
+
+def log_transitivity(G):
+    clustering_coeff = np.log(nx.transitivity(G))
+    return clustering_coeff
+
+

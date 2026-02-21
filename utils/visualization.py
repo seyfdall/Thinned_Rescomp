@@ -250,7 +250,7 @@ if __name__ == "__main__":
     rho_p_thin_set, param, param_name, param_set = parse_arguments()
     df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
     original_c = df['erdos_renyi_c'][0]
-    wanted_attributes = ['mean_vpt', 'mean_component_size', 'mean_fraction_driving']
+    wanted_attributes = ['mean_vpt', 'mean_component_size', 'mean_fraction_driving', 'mean_log_transitivity', 'mean_max_diameter']
 
     home = os.path.expanduser("~")
     results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
