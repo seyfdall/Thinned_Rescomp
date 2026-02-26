@@ -289,8 +289,11 @@ def max_diameter(G):
     diameter = nx.diameter(G.subgraph(max_component))
     return diameter
 
-def log_transitivity(G):
-    clustering_coeff = np.log(nx.transitivity(G))
+def archsinh_transitivity(G):
+    scale = 1e6
+    clustering_coeff = np.arcsinh(nx.transitivity(G) * scale)
     return clustering_coeff
+
+
 
 

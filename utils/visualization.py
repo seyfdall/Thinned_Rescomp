@@ -100,6 +100,61 @@ def create_correlation_plots(mean_values, save_path, rhos, p_thins, method="pear
     plt.savefig(f"{save_path}{method}_p_thins_correlation_plot.png")
 
 
+def create_individual_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs, method="pearson"):
+    metrics = mean_values
+
+    # Compute correlations (unchanged)
+    row_cors = []
+    for i in range(next(iter(metrics.values())).shape[0]):
+        row_df = pd.DataFrame({name: mat[i, :] for name, mat in metrics.items()})
+        row_cors.append(row_df.corr(method))
+
+    col_cors = []
+    for j in range(next(iter(metrics.values())).shape[1]):
+        col_df = pd.DataFrame({name: mat[:, j] for name, mat in metrics.items()})
+        col_cors.append(col_df.corr(method))
+
+    rho_indices = range(len(rhos))
+    p_thin_indices = range(len(p_thins))
+
+    rho_labels = [f"{x:.2f}".rstrip('0').rstrip('.') for x in rhos]
+    pthin_labels = [f"{x:.2f}".rstrip('0').rstrip('.') for x in p_thins]
+
+    for key in metrics.keys():
+        if key == "mean_vpt":
+            continue
+
+        fig, (ax2) = plt.subplots(1, 1, figsize=(6, 5))
+
+        # --- P_thin plot ---
+        ax2.plot(
+            p_thin_indices,
+            [col_cors[i].loc[key, "mean_vpt"] for i in range(len(p_thins))],
+        )
+
+        # c-lines
+        idx = np.interp(p_thin_cs[0], p_thins, range(len(p_thins)))
+        ax2.axvline(idx, linestyle="--", linewidth=1, label="c=1")
+        idx = np.interp(p_thin_cs[1], p_thins, range(len(p_thins)))
+        ax2.axvline(idx, linestyle="--", color="r", linewidth=1, label="c=1.5")
+
+        ax2.set_xticks(p_thin_indices)
+        ax2.set_xticklabels(pthin_labels, rotation=45, ha="right")
+
+        # Reduce tick clutter
+        for i, label in enumerate(ax2.get_xticklabels()):
+            if i % 10 != 0:
+                label.set_visible(False)
+
+        ax2.set_title(f"P_thin Correlation with VPT ({key})")
+        ax2.set_xlabel("P_thin")
+        ax2.legend()
+
+        plt.tight_layout()
+        plt.savefig(f"{save_path}{method}_correlation_{key}.png")
+        plt.close(fig)
+
+
 def create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs, method="pearson"):
     metrics = mean_values
 
@@ -199,6 +254,41 @@ def create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles):
     plt.tight_layout()
     plt.savefig(f"{save_path}p_thin_normalized_plots.png")
 
+def create_individual_plots(
+        mean_values, 
+        thresholds, 
+        titles,
+        cutoff,
+        rho_p_thin_set,
+        param_name,
+        param,
+        param_set,
+        rhos=[],
+        p_thins=[]
+    ):
+    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+    for i in range(len(mean_values)):
+        values = mean_values[i]
+
+        if cutoff:
+            values[values > thresholds[i]] = 0
+
+        fig, ax = plt.subplots(figsize=(6, 6))
+
+        create_system_plot(
+            values=values,
+            ax=ax,
+            title=titles[i],
+            p_thins=p_thins,
+            rhos=rhos
+        )
+
+
+        plt.tight_layout()
+        plt.savefig(f"{save_path}{titles[i]}.png")
+        plt.close(fig)
 
 #expects tuple input
 def create_plots(
@@ -239,6 +329,35 @@ def create_plots(
     #create_correlation_line_plots(mean_values, save_path, rhos, p_thins, p_thin_cs)
     #create_column_linear_plots(mean_values, save_path, rhos, p_thins, titles)
 
+def mean_correlation_plots(mean_values, save_path, rhos, p_thins, p_thin_cs, method="pearson"):
+    metrics = mean_values
+    metric_names = [name for name in metrics if name != 'mean_vpt']
+    vpt_avg = metrics['mean_vpt'].mean(axis=0)
+
+    p_thin_indices = range(len(p_thins))
+    pthin_labels = [f"{x:.2f}".rstrip('0').rstrip('.') for x in p_thins]
+
+    for name in metric_names:
+        plt.figure()
+        # Average across rho (axis=0) → get one value per p_thin
+        metric_avg = metrics[name].mean(axis=0)
+        plt.plot(p_thin_indices, metric_avg, label=name)
+        plt.plot(p_thin_indices, vpt_avg, label='vpt')
+        plt.xticks(p_thin_indices, pthin_labels, rotation=45, ha='right')
+
+        # Plot c=1 line (not exact because of shifting and interpolation but close)
+        p_thin_index = np.interp(p_thin_cs[0], p_thins, range(len(p_thins)))
+        plt.gca().axvline(x=p_thin_index, linestyle='--', linewidth=1, label="c=1")
+        p_thin_index = np.interp(p_thin_cs[1], p_thins, range(len(p_thins)))
+        plt.gca().axvline(x=p_thin_index, linestyle='--', color='r', linewidth=1, label="c=1.5")
+
+        # Correlation across p_thin
+        r = np.corrcoef(metric_avg, vpt_avg)[0, 1]
+        plt.title(name + f" r={r}")
+        plt.legend()
+        plt.savefig(f"{save_path}{method}_averaged_{name}.png")
+        plt.close()
+
 
 if __name__ == "__main__":
 
@@ -250,7 +369,7 @@ if __name__ == "__main__":
     rho_p_thin_set, param, param_name, param_set = parse_arguments()
     df = pd.read_csv(f'./utils/param_sets/{param_set}.csv')
     original_c = df['erdos_renyi_c'][0]
-    wanted_attributes = ['mean_vpt', 'mean_component_size', 'mean_fraction_driving', 'mean_log_transitivity', 'mean_max_diameter']
+    wanted_attributes = ['mean_vpt', 'mean_component_size', 'mean_fraction_driving', 'mean_arcsinh_transitivity', 'mean_max_diameter']
 
     home = os.path.expanduser("~")
     results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
@@ -264,28 +383,34 @@ if __name__ == "__main__":
     c_plot_values = [1, 1.5]
     p_thin_cs = [1-c/original_c for c in c_plot_values]
 
-    create_correlation_line_plots(
+    # create_individual_correlation_line_plots(
+    #     mean_values_dict,
+    #     save_path,
+    #     rhos,
+    #     p_thins,
+    #     p_thin_cs=p_thin_cs
+    # )
+
+    # create_individual_plots(
+    #     tuple(mean_values_dict.values()),
+    #     [3, 10, 10, 10, 10, 10], 
+    #     wanted_attributes, 
+    #     False, 
+    #     rho_p_thin_set,
+    #     param_name,
+    #     param,
+    #     param_set,
+    #     rhos, 
+    #     p_thins
+    # )
+
+    mean_correlation_plots(
         mean_values_dict,
         save_path,
         rhos,
         p_thins,
         p_thin_cs=p_thin_cs
     )
-
-    create_plots(
-        tuple(mean_values_dict.values()),
-        [3, 10, 10, 10, 10, 10], 
-        wanted_attributes, 
-        False, 
-        rho_p_thin_set,
-        param_name,
-        param,
-        param_set,
-        rhos, 
-        p_thins
-    )
-
-
 
     # Delete unnecessary files:
     # remove_system_data(results_path)

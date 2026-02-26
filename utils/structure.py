@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(f'{os.getcwd()}/utils/'))
 import helper as helper
 import driver as driver
 
-from metrics import vpt_time, component_sizes, fraction_driving, log_transitivity, max_diameter
+from metrics import vpt_time, component_sizes, fraction_driving, archsinh_transitivity, max_diameter
 from file_io import create_rescomp_datasets_template, generate_rescomp_means
 from helper import get_network
 
@@ -32,7 +32,7 @@ def drive_structural_analysis(
     n, erdos_c, gamma, sigma, alpha = param_set
 
     # Template for datasets
-    datasets = create_rescomp_datasets_template(attributes=['vpt', 'component_size', 'fraction_driving', 'log_transitivity', 'max_diameter'])
+    datasets = create_rescomp_datasets_template(attributes=['vpt', 'component_size', 'fraction_driving', 'arcsinh_transitivity', 'max_diameter'])
 
     # Generate thinned networks
     mean_degree = erdos_c*(1-p_thin)
@@ -58,13 +58,13 @@ def drive_structural_analysis(
     component_dist = component_sizes(G)
     frac_drive = fraction_driving(G)
     diameter = max_diameter(G)
-    log_trans = log_transitivity(G)
+    log_trans = archsinh_transitivity(G)
 
     datasets['vpt'].append(vpt)
     datasets['component_size'].append(component_dist)
     datasets['fraction_driving'].append(frac_drive)
     datasets['max_diameter'].append(diameter)
-    datasets['log_transitivity'].append(log_trans)
+    datasets['arcsinh_transitivity'].append(log_trans)
 
     mean_attrs = generate_rescomp_means(datasets)
 
