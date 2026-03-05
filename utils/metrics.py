@@ -12,44 +12,85 @@ def calculate_diameters(A):
     
     Returns:
         giant_diam (int): diameter of the giant component (or largest component if the giant doesn't exist)
-
-        largest_diam (int): largest diameter found over all components
         
         average_diam (int): average over all diameters
+
+        giant_size (int): number of nodes in the giant component
     """
     G = nx.from_scipy_sparse_array(A)
 
     giant_diam = 0
     giant_size = 0
-    largest_diam = 0
     sum_diam = 0
 
     connected_components = list(nx.connected_components(G))
 
     for c in connected_components:
         G_sub = G.subgraph(c)
-        curr_diam = nx.diameter(G_sub)
+
+        # Single-node component
+        if len(G_sub) <= 1:
+            curr_diam = 0
+        else:
+            curr_diam = nx.diameter(G_sub)
+
         m = len(G_sub)
 
-        # Update Giant Diameter
-        if m > giant_size:
+        # Giant component diameter
+        if m > giant_size or (m == giant_size and curr_diam > giant_diam):
             giant_diam = curr_diam
             giant_size = m
-        elif m == giant_size and curr_diam > giant_diam:
-            giant_diam = curr_diam
 
-        # Update Largest Diameter
-        if curr_diam > largest_diam:
-            largest_diam = curr_diam
-
-        # Update Average Diameter
         sum_diam += curr_diam
 
     average_diam = sum_diam / len(connected_components)
 
-    largest_diam = nx.diameter(G.subgraph(max(nx.connected_components(G), key=len)))
+    return giant_diam, average_diam, giant_size
 
-    return giant_diam, largest_diam, average_diam
+
+def calculate_diameters_weakly_connected(A):
+    """
+    Calculate diameters of weakly connected components
+    in a directed graph given by adjacency matrix A.
+
+    Returns:
+        giant_diam (int): diameter of the largest weakly connected component
+        average_diam (float): average diameter over all components
+        giant_size (int): size of the largest component
+    """
+    # Create directed graph
+    G = nx.from_scipy_sparse_array(A, create_using=nx.DiGraph)
+
+    giant_diam = 0
+    giant_size = 0
+    sum_diam = 0
+
+    components = list(nx.weakly_connected_components(G))
+
+    for c in components:
+        G_sub = G.subgraph(c)
+
+        # Diameter is defined for undirected graphs
+        G_undirected = G_sub.to_undirected()
+
+        # Single-node component
+        if len(G_undirected) <= 1:
+            curr_diam = 0
+        else:
+            curr_diam = nx.diameter(G_undirected)
+
+        m = len(G_sub)
+
+        # Giant component diameter
+        if m > giant_size or (m == giant_size and curr_diam > giant_diam):
+            giant_diam = curr_diam
+            giant_size = m
+
+        sum_diam += curr_diam
+
+    average_diam = sum_diam / len(components)
+
+    return giant_diam, average_diam, giant_size
 
 
 def nrmse(true, pred):

@@ -12,4 +12,4 @@
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 mamba activate reservoir
-python3 utils/visualization.py -r $RHO_P_THIN_SET -p $PARAM_VALUE -p_name $PARAM_NAME -p_set $PARAM_SET
+python3 utils/visualization.py -n_type $NETWORK_TYPE -r $RHO_P_THIN_SET -p $PARAM_VALUE -p_name $PARAM_NAME -p_set $PARAM_SET

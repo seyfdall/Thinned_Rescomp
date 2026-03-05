@@ -19,9 +19,9 @@ import ResComp
 """
 Import Helper functions
 """
-from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson, calculate_diameters
-from file_io import HDF5FileHandler, create_rescomp_datasets_template, generate_rescomp_means
-from helper import get_orbit
+from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson, calculate_diameters, calculate_diameters_weakly_connected
+from file_io import HDF5FileHandler, update_datasets, generate_rescomp_means
+from helper import get_orbit, create_network
 
 
 # Global flag to stop gracefully
@@ -49,6 +49,7 @@ def drive_reservoir_analysis(
         t_test,
         U_train,
         U_test,
+        network_type,
         rho,
         p_thin,
         param_set
@@ -60,14 +61,17 @@ def drive_reservoir_analysis(
     n, erdos_c, gamma, sigma, alpha = param_set
 
     # Template for datasets
-    datasets = create_rescomp_datasets_template()
+    # datasets = create_rescomp_datasets_template()
 
-    # Generate thinned networks
+    # Generate thinned network
     mean_degree = erdos_c*(1-p_thin)
     if mean_degree < 0.0:
         mean_degree = 0.0
-    
-    res_thinned = ResComp.ResComp(res_sz=n, mean_degree=mean_degree, 
+    p = mean_degree / n 
+    params = [n, p]
+    A = create_network(params, network_type, rho)
+
+    res_thinned = ResComp.ResComp(A, res_sz=n, mean_degree=mean_degree, 
                                 ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
                                 gamma=gamma, map_initial='activ_f')       
 
@@ -93,21 +97,38 @@ def drive_reservoir_analysis(
     error = np.linalg.norm(U_test - U_pred, axis=1)
     vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
     divs = div_metric_tests(res_thinned.states)
-    giant_diam, largest_diam, average_diam = calculate_diameters(res_thinned.res)
 
+    datasets = {}
+
+    # Custom network metrics
+    if network_type == "undirected_erdos":
+        giant_diam, average_diam, giant_size = calculate_diameters(res_thinned.res)
+        datasets = update_datasets(datasets,
+            giant_diam=giant_diam,
+            average_diam=average_diam,
+            giant_size=giant_size
+        )
+    elif network_type == "directed_erdos":
+        giant_diam, average_diam, giant_size = calculate_diameters_weakly_connected(res_thinned.res)
+        print(f"GIANT SIZE: {giant_size}")
+        datasets = update_datasets(datasets,
+            giant_diam=giant_diam,
+            average_diam=average_diam,
+            giant_size=giant_size
+        )
+
+    # Metrics shared across all runs
     print("Divs:", divs)
-
-    datasets['div_pos'].append(divs[0])
-    datasets['div_der'].append(divs[1])
-    datasets['div_spect'].append(divs[2])
-    datasets['div_rank'].append(divs[3])
-    datasets['pred'].append(U_pred)
-    datasets['err'].append(error)
-    datasets['vpt'].append(vpt)
-    datasets['consistency_correlation'].append(cap)
-    datasets['giant_diam'].append(giant_diam)
-    datasets['largest_diam'].append(largest_diam)
-    datasets['average_diam'].append(average_diam)
+    update_datasets(datasets,
+        div_pos=divs[0],
+        div_der=divs[1],
+        div_spect=divs[2],
+        div_rank=divs[3],
+        pred=U_pred,
+        err=error,
+        vpt=vpt,
+        consistency_correlation=cap    
+    )
 
     mean_attrs = generate_rescomp_means(datasets)
 
@@ -121,6 +142,7 @@ Uniform Sampling Gridsearch
 """
 
 def rescomp_parallel_uniform_gridsearch_h5(
+        network_type,
         erdos_possible_combinations, 
         rho,
         p_thin,
@@ -156,8 +178,17 @@ def rescomp_parallel_uniform_gridsearch_h5(
             n, erdos_c, gamma, sigma, alpha = erdos_possible_combinations[param_set_index]
 
             try:
-                mean_attrs, datasets = drive_reservoir_analysis(tol, t_train, t_test, U_train, 
-                                                                    U_test, rho, p_thin, erdos_possible_combinations[param_set_index])
+                mean_attrs, datasets = drive_reservoir_analysis(
+                    tol, 
+                    t_train, 
+                    t_test, 
+                    U_train, 
+                    U_test,
+                    network_type,
+                    rho, 
+                    p_thin, 
+                    erdos_possible_combinations[param_set_index]
+                )
 
             except ArpackNoConvergence as e: # Occasionally sparse linalg eigs isn't able to converge
                 i = i-1
