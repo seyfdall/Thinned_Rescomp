@@ -141,36 +141,17 @@ class GroupIOHandler:
     def get_dataset(self, name):
         """ Retrieves a specific dataset from in-memory storage. """
         return self.datasets.get(name)
-    
 
-def create_rescomp_datasets_template(
-        div_der = [], 
-        div_pos = [], 
-        div_spect = [],
-        div_rank = [],
-        vpt = [],
-        pred = [],
-        err = [],
-        consistency_correlation = [],
-        giant_diam = [],
-        largest_diam = [],
-        average_diam = []
-    ):
-    """ Template to create attributes/datasets object for hdf5 file groups """
 
-    return {
-        "div_der": div_der, 
-        "div_pos": div_pos,
-        "div_spect": div_spect,
-        "div_rank": div_rank,
-        "vpt": vpt,
-        "pred": pred,
-        "err": err,
-        "consistency_correlation": consistency_correlation,
-        "giant_diam": giant_diam,
-        "largest_diam": largest_diam,
-        "average_diam": average_diam
-    }
+
+def update_datasets(datasets, **data):
+    for key, value in data.items():
+        if key in datasets.keys():
+            datasets[key].append(value)
+        else:
+            datasets[key] = [value]
+    return datasets
+
 
 
 def generate_rescomp_means(datasets):
@@ -219,7 +200,7 @@ Reading from the files
 """
 
 metric_attrs = ['mean_average_diam', 'mean_consistency_correlation', 'mean_div_der', 'mean_div_pos', 
-                'mean_div_rank', 'mean_div_spect', 'mean_giant_diam', 'mean_vpt']
+                'mean_div_rank', 'mean_div_spect', 'mean_giant_diam', 'mean_vpt', 'mean_giant_size']
 
 def get_file_metrics(hdf5_file):
     """

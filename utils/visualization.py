@@ -171,7 +171,7 @@ def create_column_linear_plots(metrics, save_path, rhos, p_thins, titles):
     linestyles = ['-', '--']
     colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
 
-    for j in range(len(p_thins)):
+    for j in range(num_plots):
         for i, attr in enumerate(metrics):
             ax = axes[j]
             ax.plot(
@@ -198,7 +198,7 @@ def create_column_linear_plots(metrics, save_path, rhos, p_thins, titles):
     linestyles = ['-', '--']
     colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
 
-    for j in range(len(p_thins)):
+    for j in range(num_plots):
         for i, attr in enumerate(metrics):
             ax = axes[j]
             ax.plot(
@@ -225,7 +225,7 @@ def create_column_linear_plots(metrics, save_path, rhos, p_thins, titles):
     linestyles = ['-', '--']
     colors = ['blue', 'green', 'orange', 'red', 'purple', 'brown']
 
-    for j in range(len(p_thins)):
+    for j in range(num_plots):
         for i, attr in enumerate(metrics):
             ax = axes[j]
             ax.plot(
@@ -246,7 +246,7 @@ def create_column_linear_plots(metrics, save_path, rhos, p_thins, titles):
     plt.savefig(f"{save_path}p_thin_normalized_cumulative_l1_err_plots.png")
 
 
-def create_diameter_p_thin_plots(metrics, c, save_path, p_thins, titles):
+def create_diameter_p_thin_plots(metrics, c, save_path, p_thins):
     p_thin_indices = range(len(p_thins))
     p_thin_labels = [f"{x:.3f}".rstrip('0').rstrip('.') for x in p_thins]
 
@@ -257,8 +257,8 @@ def create_diameter_p_thin_plots(metrics, c, save_path, p_thins, titles):
     fig, ax = plt.subplots(figsize=(8, 8))
 
     # main plots
-    ax.plot(metrics['mean_giant_diam'][0, :], label=titles[0])
-    ax.plot(metrics['mean_average_diam'][0, :], label=titles[1])
+    for attr in metrics.keys():
+        ax.plot(metrics[attr][0, :], label=attr)
 
     # vertical line at max diameter
     argmax_p_thin = np.argmax(metrics['mean_giant_diam'][0, :])
@@ -316,6 +316,7 @@ def create_metric_mean_plots(
 
 def create_plots_helper(
         comp_metrics,
+        network_type,
         rho_p_thin_set,
         param_name,
         param,
@@ -324,12 +325,13 @@ def create_plots_helper(
         p_thins,
         c
     ):
-    save_path = f'{os.getcwd()}/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    save_path = f'{os.getcwd()}/results/{network_type}/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-    diameter_keys = ['mean_average_diam', 'mean_giant_diam']
-    focus_keys = ['mean_vpt', 'mean_div_pos', 'mean_div_der', 'mean_div_spect', 
-                     'mean_div_spect', 'mean_consistency_correlation']
+    print(f"Metric keys: {list(comp_metrics.keys())}")
+
+    diameter_keys = ['mean_average_diam', 'mean_giant_diam'] #['mean_average_diam', 'mean_giant_diam', 'giant_size']
+    focus_keys = ['mean_vpt', 'mean_div_pos', 'mean_div_der', 'mean_div_spect', 'mean_div_rank', 'mean_consistency_correlation']
     
     diameter_metrics = {k: comp_metrics[k] for k in diameter_keys}
     focus_metrics = {k: comp_metrics[k] for k in focus_keys}
@@ -341,7 +343,7 @@ def create_plots_helper(
     create_metric_mean_plots(focus_metrics, param_name, param, param_set, p_thins, rhos, save_path)
     create_correlation_plots(focus_metrics, save_path, rhos, p_thins)
     create_correlation_line_plots(focus_metrics, save_path, rhos, p_thins, p_thin_cs, c)
-    create_diameter_p_thin_plots(diameter_metrics, c, save_path, p_thins, diameter_keys)
+    create_diameter_p_thin_plots(diameter_metrics, c, save_path, p_thins)
     create_column_linear_plots(focus_metrics, save_path, rhos, p_thins, focus_keys)
 
 
@@ -349,10 +351,10 @@ if __name__ == "__main__":
     """
     Post-Processing Visual Analysis on results
     """
-    rho_p_thin_set, param, param_name, param_set = parse_arguments()
+    network_type, rho_p_thin_set, param, param_name, param_set = parse_arguments()
 
     home = os.path.expanduser("~")
-    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    results_path = f'{home}/nobackup/autodelete/results/{network_type}/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
     rhos_p_thin_dict = {}
     with open(f'./utils/rho_p_thin_sets/{rho_p_thin_set}.json') as f:
@@ -368,6 +370,7 @@ if __name__ == "__main__":
     comp_metrics = get_average_system_metrics(p_thins, rhos, results_path)
     create_plots_helper(
         comp_metrics, 
+        network_type,
         rho_p_thin_set,
         param_name,
         param,

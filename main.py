@@ -13,7 +13,7 @@ Main Method to call the Gridsearch
 # TODO: Top right corner - higher highs and lower lows?
 
 def main():
-    rho_p_thin_set, param, param_name, param_set = helper.parse_arguments()
+    network_type, rho_p_thin_set, param, param_name, param_set = helper.parse_arguments()
 
     rho_p_thin_prod, erdos_possible_combinations = helper.generate_params(
         rho_p_thin_set,
@@ -32,9 +32,10 @@ def main():
         rho, p_thin = rho_p_thin_prod[job_id_number]
         
     home = os.path.expanduser("~")
-    results_path = f'{home}/nobackup/autodelete/results/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    results_path = f'{home}/nobackup/autodelete/results/{network_type}/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
 
     driver.rescomp_parallel_uniform_gridsearch_h5(
+        network_type,
         erdos_possible_combinations, 
         rho,
         p_thin,

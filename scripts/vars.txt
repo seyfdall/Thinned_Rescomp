@@ -1,1 +1,1 @@
-comprehensive_set_III attractor_recon_set_n_400_c_10 alpha 2e-08
+directed_erdos comprehensive_set_IV attractor_recon_set_n_500_c_4 alpha 4e-9

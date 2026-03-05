@@ -9,6 +9,7 @@
 #SBATCH --cpus-per-task=1
 
 echo "Running SLURM_ARRAY_TASK_ID=$SLURM_ARRAY_TASK_ID"
+echo "NETWORK_TYPE=$NETWORK_TYPE"
 echo "RHO_P_THIN_SET=$RHO_P_THIN_SET"
 echo "PARAM_SET=$PARAM_SET"
 echo "PARAM_NAME=$PARAM_NAME"
@@ -17,6 +18,7 @@ echo "PARAM_VALUE=$PARAM_VALUE"
 # Load Conda properly in non-interactive shell
 # source ~/anaconda3/etc/profile.d/conda.sh
 # 10G for 200, 20G for 400, 30G for 600, 40G for 800 (about 16 - need to up time by a lot), 50G not enough for 1000
+# To run test mode - set time to 01:30:00, tf=360 in main.py and the vars.txt updated to point to rho_p_thin_test_set.json
 conda activate reservoir
 
 module load openmpi/4.1.6-fgmxkt2
@@ -29,5 +31,5 @@ END=$((START + CHUNK_SIZE - 1))
 for (( i=START; i<=END; i++ )); do
     echo $i
     export ID_TO_PROCESS=$i
-    python3 main.py -r "$RHO_P_THIN_SET" -p "$PARAM_VALUE" -p_name "$PARAM_NAME" -p_set "$PARAM_SET"
+    python3 main.py -n_type "$NETWORK_TYPE" -r "$RHO_P_THIN_SET" -p "$PARAM_VALUE" -p_name "$PARAM_NAME" -p_set "$PARAM_SET"
 done
