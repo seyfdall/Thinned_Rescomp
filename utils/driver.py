@@ -76,14 +76,12 @@ def drive_reservoir_analysis(
                                 gamma=gamma, map_initial='activ_f')       
 
     print("First Replica Run")
-    # Compute Consistency Metric
     # First replica run
     r0_1 = np.random.uniform(-1., 1., n)
     states_1 = res_thinned.internal_state_response(t_train, U_train, r0_1)
 
     print("Second Replica Run")
     # Second replica run
-    # r0_2 = np.random.uniform(0., 1., n) * np.sign(r0_1)
     r0_2 = np.random.uniform(-1., 1., n)
     states_2 = res_thinned.internal_state_response(t_train, U_train, r0_2)
 
