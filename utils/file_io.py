@@ -1,5 +1,7 @@
 import numpy as np
 import os
+import json
+from pathlib import Path
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 # Set seed for reproducibility
@@ -267,3 +269,60 @@ def remove_system_data(results_path):
     """
     for file_path in glob(f'{results_path}*.h5'):
         os.remove(file_path)
+
+
+def _to_numpy_array(value):
+    """Convert sparse-like objects to arrays for storage when needed."""
+    if hasattr(value, "toarray"):
+        return value.toarray()
+    return value
+
+
+def save_exemplar_bundle(
+    bundle_dir,
+    artifacts,
+    mean_attrs=None,
+    datasets=None,
+    include_datasets=False,
+):
+    """Save notebook-focused run outputs into a directory of .npy and JSON files."""
+    bundle_path = Path(bundle_dir)
+    bundle_path.mkdir(parents=True, exist_ok=True)
+
+    for key, value in artifacts.items():
+        np.save(bundle_path / f"{key}.npy", _to_numpy_array(value))
+
+    if mean_attrs is not None:
+        with open(bundle_path / "mean_attrs.json", "w", encoding="utf-8") as f:
+            json.dump(mean_attrs, f, indent=2)
+
+    if include_datasets and datasets is not None:
+        for key, value in datasets.items():
+            np.save(bundle_path / f"dataset_{key}.npy", np.array(value, dtype=object), allow_pickle=True)
+
+
+def load_exemplar_bundle(bundle_dir, load_datasets=False):
+    """Load a bundle saved by save_exemplar_bundle."""
+    bundle_path = Path(bundle_dir)
+
+    result = {
+        "artifacts": {},
+        "mean_attrs": {},
+        "datasets": {},
+    }
+
+    for npy_file in bundle_path.glob("*.npy"):
+        stem = npy_file.stem
+        if stem.startswith("dataset_"):
+            if load_datasets:
+                key = stem.replace("dataset_", "", 1)
+                result["datasets"][key] = np.load(npy_file, allow_pickle=True).tolist()
+            continue
+        result["artifacts"][stem] = np.load(npy_file, allow_pickle=True)
+
+    mean_attrs_path = bundle_path / "mean_attrs.json"
+    if mean_attrs_path.is_file():
+        with open(mean_attrs_path, "r", encoding="utf-8") as f:
+            result["mean_attrs"] = json.load(f)
+
+    return result

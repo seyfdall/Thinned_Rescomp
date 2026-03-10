@@ -7,21 +7,14 @@ from scipy.sparse.linalg import ArpackNoConvergence
 import time
 import traceback
 import logging
-import sys
-import os
 import signal
 
 """
-Import Inhouse Rescomp
-"""
-sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..", "rescomp", "rescomp")))
-import ResComp
-"""
 Import Helper functions
 """
-from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson, calculate_diameters, calculate_diameters_weakly_connected
-from file_io import HDF5FileHandler, update_datasets, generate_rescomp_means
-from helper import get_orbit, create_network
+from file_io import HDF5FileHandler
+from helper import get_orbit
+from reservoir_workflows import run_single_reservoir_analysis
 
 
 # Global flag to stop gracefully
@@ -55,84 +48,19 @@ def drive_reservoir_analysis(
         param_set
     ):
     """Inner for loop work here - run a single reservoir and perform analysis"""
-
-    print("param_set:", param_set)
-
-    n, erdos_c, gamma, sigma, alpha = param_set
-
-    # Template for datasets
-    # datasets = create_rescomp_datasets_template()
-
-    # Generate thinned network
-    mean_degree = erdos_c*(1-p_thin)
-    if mean_degree < 0.0:
-        mean_degree = 0.0
-    p = mean_degree / n 
-    params = [n, p]
-    A = create_network(params, network_type, rho)
-
-    res_thinned = ResComp.ResComp(A, res_sz=n, mean_degree=mean_degree, 
-                                ridge_alpha=alpha, spect_rad=rho, sigma=sigma, 
-                                gamma=gamma, map_initial='activ_f')       
-
-    print("First Replica Run")
-    # First replica run
-    r0_1 = np.random.uniform(-1., 1., n)
-    states_1 = res_thinned.internal_state_response(t_train, U_train, r0_1)
-
-    print("Second Replica Run")
-    # Second replica run
-    r0_2 = np.random.uniform(-1., 1., n)
-    states_2 = res_thinned.internal_state_response(t_train, U_train, r0_2)
-
-    cap = consistency_analysis_pearson(states_1.T, states_2.T)
-
-    print("Train")       
-    res_thinned.train(t_train, U_train)
-
-    print("Forecast and predict")
-    U_pred = res_thinned.predict(t_test, r0=res_thinned.r0, return_states=True)[0]
-    error = np.linalg.norm(U_test - U_pred, axis=1)
-    vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
-    divs = div_metric_tests(res_thinned.states)
-
-    datasets = {}
-
-    # Custom network metrics
-    if network_type == "undirected_erdos":
-        giant_diam, average_diam, giant_size = calculate_diameters(res_thinned.res)
-        datasets = update_datasets(datasets,
-            giant_diam=giant_diam,
-            average_diam=average_diam,
-            giant_size=giant_size
-        )
-    elif network_type == "directed_erdos":
-        giant_diam, average_diam, giant_size = calculate_diameters_weakly_connected(res_thinned.res)
-        print(f"GIANT SIZE: {giant_size}")
-        datasets = update_datasets(datasets,
-            giant_diam=giant_diam,
-            average_diam=average_diam,
-            giant_size=giant_size
-        )
-
-    # Metrics shared across all runs
-    print("Divs:", divs)
-    update_datasets(datasets,
-        div_pos=divs[0],
-        div_der=divs[1],
-        div_spect=divs[2],
-        div_rank=divs[3],
-        pred=U_pred,
-        err=error,
-        vpt=vpt,
-        consistency_correlation=cap    
+    run_result = run_single_reservoir_analysis(
+        tol=tol,
+        t_train=t_train,
+        t_test=t_test,
+        U_train=U_train,
+        U_test=U_test,
+        network_type=network_type,
+        rho=rho,
+        p_thin=p_thin,
+        param_set=param_set,
     )
 
-    mean_attrs = generate_rescomp_means(datasets)
-
-    print("Mean_attrs:", mean_attrs)
-
-    return mean_attrs, datasets
+    return run_result.mean_attrs, run_result.datasets
 
 
 """
