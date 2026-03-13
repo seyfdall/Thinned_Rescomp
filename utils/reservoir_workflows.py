@@ -14,8 +14,8 @@ from metrics import (
     div_metric_tests,
     vpt_time,
 )
-from file_io import generate_rescomp_means, update_datasets
-from helper import create_network
+from file_io import generate_rescomp_means, update_datasets, get_bundle_dir, save_exemplar_bundle
+from helper import create_network, get_orbit
 
 
 def _get_rescomp_module():
@@ -212,3 +212,66 @@ def search_best_reservoir(
             best_result = run_result
 
     return best_result, best_vpt
+
+
+def build_and_save_best_reservoir(
+    n,
+    network_type,
+    rho,
+    mean_degree,
+    alpha,
+    gamma,
+    sigma,
+    tol,
+    duration,
+    switch,
+    draw_count=100,
+    vpt_upper_bound=3.5,
+):
+    """Search for the best reservoir and persist it as an exemplar bundle."""
+    t_train, U_train, t_test, U_test = get_orbit(duration=duration, system='lorenz', switch=switch)
+
+    # For the notebook flow, erdos_c equals the pre-thinning mean degree.
+    erdos_c = mean_degree
+    p_thin = 0.0
+    param_set = (n, erdos_c, gamma, sigma, alpha)
+
+    bundle_dir = get_bundle_dir(
+        n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch
+    )
+
+    best_vpt_start = 0.0
+    existing_vpt_path = bundle_dir / "vpt.npy"
+    if existing_vpt_path.is_file():
+        best_vpt_start = float(np.load(existing_vpt_path))
+
+    best_result, best_vpt = search_best_reservoir(
+        tol=tol,
+        t_train=t_train,
+        t_test=t_test,
+        U_train=U_train,
+        U_test=U_test,
+        network_type=network_type,
+        rho=rho,
+        p_thin=p_thin,
+        param_set=param_set,
+        draw_count=draw_count,
+        best_vpt_start=best_vpt_start,
+        vpt_upper_bound=vpt_upper_bound,
+        artifact_level=ArtifactLevel.FULL_STATES,
+    )
+
+    if best_result is None:
+        print(f"No improved reservoir found. Current best vpt={best_vpt_start:.4f}")
+        return
+
+    save_exemplar_bundle(
+        bundle_dir=bundle_dir,
+        artifacts=best_result.artifacts,
+        mean_attrs=best_result.mean_attrs,
+        datasets=best_result.datasets,
+        include_datasets=False,
+    )
+
+    print(f"Saved bundle to {bundle_dir}")
+    print(f"Best vpt: {best_vpt:.4f}")

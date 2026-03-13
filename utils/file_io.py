@@ -326,3 +326,43 @@ def load_exemplar_bundle(bundle_dir, load_datasets=False):
             result["mean_attrs"] = json.load(f)
 
     return result
+
+
+def get_bundle_dir(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch):
+    """Return the Path for a bundle directory given reservoir parameters."""
+    return Path(
+        f"data/bundle_n_{n}_n_type_{network_type}_rho_{rho}_mean_degree_{mean_degree}_"
+        f"alpha_{alpha}_gamma_{gamma}_sigma_{sigma}_tol_{tol}_duration_{duration}_switch_{switch}/"
+    )
+
+
+def load_bundle_data(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch):
+    """Load a saved exemplar bundle and unpack all artifacts into named arrays."""
+    bundle_dir = get_bundle_dir(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch)
+    bundle = load_exemplar_bundle(bundle_dir)
+    artifacts = bundle["artifacts"]
+
+    A = artifacts["A"]
+    r0 = artifacts["r0"]
+    t_train = artifacts["t_train"]
+    U_train = artifacts["U_train"]
+    t_test = artifacts["t_test"]
+    U_test = artifacts["U_test"]
+    U_hat_pred = artifacts["U_pred"]
+    states_train = artifacts["states_train"]
+    states_pred = artifacts["states_pred"]
+    replica_states_1 = artifacts["replica_states_1"]
+    replica_states_2 = artifacts["replica_states_2"]
+    W_out = artifacts["W_out"]
+
+    # Reconstruct training prediction.
+    U_hat_train = (W_out @ states_train.T).T
+    vpt = np.array([float(np.asarray(artifacts["vpt"]))])
+
+    return (
+        A, r0, t_train, U_train, t_test, U_test,
+        U_hat_train, U_hat_pred,
+        states_train, states_pred,
+        replica_states_1, replica_states_2,
+        W_out, vpt,
+    )

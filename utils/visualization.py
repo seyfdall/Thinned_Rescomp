@@ -295,10 +295,11 @@ def create_metric_mean_plots(
         metrics,
         param_name,
         param,
-        param_set, 
-        p_thins, 
-        rhos, 
-        save_path
+        param_set,
+        p_thins,
+        rhos,
+        save_path,
+        rho_p_thin_set="",
     ):
 
     num_plots = len(metrics.keys())
@@ -340,7 +341,7 @@ def create_plots_helper(
     print(f"diameter argmax", diam_p_thin_argmax)
     p_thin_cs = [p_thins[diam_p_thin_argmax]]
 
-    create_metric_mean_plots(focus_metrics, param_name, param, param_set, p_thins, rhos, save_path)
+    create_metric_mean_plots(focus_metrics, param_name, param, param_set, p_thins, rhos, save_path, rho_p_thin_set)
     create_correlation_plots(focus_metrics, save_path, rhos, p_thins)
     create_correlation_line_plots(focus_metrics, save_path, rhos, p_thins, p_thin_cs, c)
     create_diameter_p_thin_plots(diameter_metrics, c, save_path, p_thins)
