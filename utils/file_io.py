@@ -336,9 +336,59 @@ def get_bundle_dir(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, 
     )
 
 
-def load_bundle_data(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch):
-    """Load a saved exemplar bundle and unpack all artifacts into named arrays."""
-    bundle_dir = get_bundle_dir(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch)
+def get_named_bundle_dir(parameter_set_name):
+    """Return the Path for a bundle directory keyed by parameter set name."""
+    return Path(f"data/bundle_{parameter_set_name}/")
+
+
+def load_parameters(param_set_name, parameters_file=None):
+    """
+    Load a parameter set from a JSON configuration file.
+    
+    Parameters:
+        param_set_name (str): Name of the parameter set to load (e.g., 'good_parameters', 'bad_parameters').
+        parameters_file (str, optional): Path to the parameters JSON file. If None, looks for 
+                                         'parameters.json' in the current directory and parent directories.
+    
+    Returns:
+        dict: A dictionary containing the parameters. Includes a 'description' key.
+        
+    Raises:
+        FileNotFoundError: If the parameters file cannot be found.
+        KeyError: If the param_set_name does not exist in the file.
+    """
+    if parameters_file is None:
+        # Search for parameters.json in current and parent directories
+        search_paths = [
+            Path("parameters.json"),
+            Path(__file__).parent.parent / "parameters.json",
+            Path.cwd() / "parameters.json",
+        ]
+        
+        for path in search_paths:
+            if path.is_file():
+                parameters_file = path
+                break
+        
+        if parameters_file is None:
+            raise FileNotFoundError(
+                "Could not find parameters.json. Searched in current directory and script's parent directory."
+            )
+    
+    parameters_file = Path(parameters_file)
+    
+    with open(parameters_file, "r", encoding="utf-8") as f:
+        all_params = json.load(f)
+    
+    if param_set_name not in all_params:
+        available = list(all_params.keys())
+        raise KeyError(f"Parameter set '{param_set_name}' not found. Available sets: {available}")
+    
+    return all_params[param_set_name]
+
+
+def _load_bundle_data_from_dir(bundle_dir):
+    """Load a saved exemplar bundle from a directory and unpack all artifacts into named arrays."""
     bundle = load_exemplar_bundle(bundle_dir)
     artifacts = bundle["artifacts"]
 
@@ -355,7 +405,6 @@ def load_bundle_data(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol
     replica_states_2 = artifacts["replica_states_2"]
     W_out = artifacts["W_out"]
 
-    # Reconstruct training prediction.
     U_hat_train = (W_out @ states_train.T).T
     vpt = np.array([float(np.asarray(artifacts["vpt"]))])
 
@@ -366,3 +415,15 @@ def load_bundle_data(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol
         replica_states_1, replica_states_2,
         W_out, vpt,
     )
+
+
+def load_bundle_data_by_name(parameter_set_name):
+    """Load a saved exemplar bundle using bundle_{parameter_set_name} naming."""
+    bundle_dir = get_named_bundle_dir(parameter_set_name)
+    return _load_bundle_data_from_dir(bundle_dir)
+
+
+def load_bundle_data(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch):
+    """Load a saved exemplar bundle and unpack all artifacts into named arrays."""
+    bundle_dir = get_bundle_dir(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch)
+    return _load_bundle_data_from_dir(bundle_dir)

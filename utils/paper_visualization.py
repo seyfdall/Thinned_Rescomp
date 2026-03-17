@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 — registers the 3D projection
+from pathlib import Path
 
 
 def configure_paper_style():
@@ -17,7 +18,16 @@ def configure_paper_style():
     })
 
 
-def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n):
+def _save_and_show(fig, save_path=None, save_dpi=600):
+    """Save figure with publication-quality defaults, then display it."""
+    if save_path is not None:
+        output_path = Path(save_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(output_path, dpi=save_dpi, bbox_inches="tight", facecolor="white")
+    plt.show()
+
+
+def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_path=None, save_dpi=600):
     """Two-panel figure: coloured reservoir node traces (top) and signal prediction (bottom)."""
     cmap = plt.get_cmap('plasma')
 
@@ -118,10 +128,10 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n):
     )
 
     plt.legend()
-    plt.show()
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
 
 
-def plot_replica_pair(replica_states_1, replica_states_2, t_train, n):
+def plot_replica_pair(replica_states_1, replica_states_2, t_train, n, save_path=None, save_dpi=600):
     """Two-panel coloured trace plot of each replica's state trajectories."""
     cmap = plt.get_cmap('plasma')
 
@@ -158,10 +168,10 @@ def plot_replica_pair(replica_states_1, replica_states_2, t_train, n):
 
     axes[0].set_title(r"Replica Test 1", y=-0.08)
     axes[1].set_title(r"Replica Test 2", y=-0.08)
-    plt.show()
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
 
 
-def plot_replica_convergence(replica_states_1, replica_states_2, t_train, n, tail=50, conv_tol=1e-3):
+def plot_replica_convergence(replica_states_1, replica_states_2, t_train, n, tail=50, conv_tol=1e-3, save_path=None, save_dpi=600):
     """Overlay of 15 sampled node pairs coloured by whether they converge."""
     converged = np.array([
         np.linalg.norm(replica_states_1[-tail:, i] - replica_states_2[-tail:, i]) < conv_tol
@@ -202,10 +212,10 @@ def plot_replica_convergence(replica_states_1, replica_states_2, t_train, n, tai
     ]
     ax.legend(handles=legend_elements)
     ax.set_title(r"Replica Test", y=-0.08)
-    plt.show()
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
 
 
-def plot_reservoir_heatmap(reservoir_states, u_true, u_hat, T, t):
+def plot_reservoir_heatmap(reservoir_states, u_true, u_hat, T, t, save_path=None, save_dpi=600):
     """Heatmap of z-scored reservoir states (top) with plain signal comparison (bottom)."""
     fig, ax = plt.subplots(figsize=(18, 4))
 
@@ -219,10 +229,10 @@ def plot_reservoir_heatmap(reservoir_states, u_true, u_hat, T, t):
     cbar.set_label("Node Value")
 
     plt.tight_layout()
-    plt.show()
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
 
 
-def plot_lorenz_attractor(U_test, U_hat_pred):
+def plot_lorenz_attractor(U_test, U_hat_pred, save_path=None, save_dpi=600):
     """3D phase-space plot of true vs RC-predicted Lorenz trajectory."""
     fig = plt.figure(figsize=(8, 6))
     ax = fig.add_subplot(projection="3d")
@@ -230,4 +240,4 @@ def plot_lorenz_attractor(U_test, U_hat_pred):
     ax.plot(*U_hat_pred.T, color="orange", label="RC")
     ax.set_title("Lorenz Attractor Prediction")
     plt.legend()
-    plt.show()
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)

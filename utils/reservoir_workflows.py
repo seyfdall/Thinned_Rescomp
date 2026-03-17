@@ -14,7 +14,13 @@ from metrics import (
     div_metric_tests,
     vpt_time,
 )
-from file_io import generate_rescomp_means, update_datasets, get_bundle_dir, save_exemplar_bundle
+from file_io import (
+    generate_rescomp_means,
+    update_datasets,
+    get_bundle_dir,
+    get_named_bundle_dir,
+    save_exemplar_bundle,
+)
 from helper import create_network, get_orbit
 
 
@@ -182,7 +188,7 @@ def search_best_reservoir(
     draw_count: int = 100,
     best_vpt_start: float = 0.0,
     vpt_upper_bound: Optional[float] = 3.5,
-    artifact_level: ArtifactLevel = ArtifactLevel.FULL_STATES,
+    artifact_level: ArtifactLevel = ArtifactLevel.FULL_STATES
 ) -> Tuple[Optional[ReservoirRunResult], float]:
     """Search multiple random reservoirs and keep the best run by vpt."""
 
@@ -227,8 +233,22 @@ def build_and_save_best_reservoir(
     switch,
     draw_count=100,
     vpt_upper_bound=3.5,
+    skip_if_bundle_exists=False,
+    override=False,
+    parameter_set_name=None,
 ):
     """Search for the best reservoir and persist it as an exemplar bundle."""
+    if parameter_set_name is not None:
+        bundle_dir = get_named_bundle_dir(parameter_set_name)
+    else:
+        bundle_dir = get_bundle_dir(
+            n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch
+        )
+
+    if skip_if_bundle_exists and (bundle_dir / "vpt.npy").is_file():
+        print(f"Bundle already exists at {bundle_dir}; skipping reservoir search.")
+        return
+
     t_train, U_train, t_test, U_test = get_orbit(duration=duration, system='lorenz', switch=switch)
 
     # For the notebook flow, erdos_c equals the pre-thinning mean degree.
@@ -236,13 +256,9 @@ def build_and_save_best_reservoir(
     p_thin = 0.0
     param_set = (n, erdos_c, gamma, sigma, alpha)
 
-    bundle_dir = get_bundle_dir(
-        n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch
-    )
-
     best_vpt_start = 0.0
     existing_vpt_path = bundle_dir / "vpt.npy"
-    if existing_vpt_path.is_file():
+    if existing_vpt_path.is_file() and not override:
         best_vpt_start = float(np.load(existing_vpt_path))
 
     best_result, best_vpt = search_best_reservoir(
@@ -258,7 +274,7 @@ def build_and_save_best_reservoir(
         draw_count=draw_count,
         best_vpt_start=best_vpt_start,
         vpt_upper_bound=vpt_upper_bound,
-        artifact_level=ArtifactLevel.FULL_STATES,
+        artifact_level=ArtifactLevel.FULL_STATES
     )
 
     if best_result is None:

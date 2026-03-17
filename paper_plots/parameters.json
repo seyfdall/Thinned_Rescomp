@@ -1,0 +1,72 @@
+{
+  "paper_parameters": {
+    "description": "Paper Parameters from the Global Forecasts in Reservoir Computers Paper",
+    "n": 50,
+    "network_type": "undirected_erdos",
+    "rho": 16.81,
+    "p": 0.1,
+    "mean_degree": 5.0,
+    "alpha": 2.7e-08,
+    "gamma": 8.78,
+    "sigma": 0.187,
+    "tol": 5.0,
+    "duration": 8,
+    "switch": 6
+  },
+  "average_spectral_radius_good_vpt_good_diversity_good_consistency_parameters": {
+    "description": "Good Parameters from our work",
+    "n": 50,
+    "network_type": "directed_erdos",
+    "rho": 2,
+    "p": 0.1,
+    "mean_degree": 5,
+    "alpha": 2e-08,
+    "gamma": 10,
+    "sigma": 0.014,
+    "tol": 5.0,
+    "duration": 8,
+    "switch": 6
+  },
+  "high_spectral_radius_bad_vpt_bad_diversity_bad_consistency_parameters": {
+    "description": "Bad Parameters from our work",
+    "n": 50,
+    "network_type": "directed_erdos",
+    "rho": 10,
+    "p": 0.1,
+    "mean_degree": 5,
+    "alpha": 2e-08,
+    "gamma": 10,
+    "sigma": 0.014,
+    "tol": 5.0,
+    "duration": 8,
+    "switch": 6
+  },
+  "low_spectral_radius_good_vpt_good_diversity_good_consistency_parameters": {
+    "description": "Good Parameters from our work",
+    "n": 50,
+    "network_type": "directed_erdos",
+    "rho": 0.5,
+    "p": 0.1,
+    "mean_degree": 5,
+    "alpha": 2e-08,
+    "gamma": 10,
+    "sigma": 0.014,
+    "tol": 5.0,
+    "duration": 8,
+    "switch": 6
+  },
+  "high_spectral_radius_bad_vpt_bad_diversity_good_consistency_parameters": {
+    "description": "Good Parameters from our work",
+    "n": 50,
+    "network_type": "directed_erdos",
+    "rho": 10,
+    "p": 0.1,
+    "mean_degree": 5,
+    "alpha": 2e-08,
+    "gamma": 10,
+    "sigma": 0.014,
+    "tol": 5.0,
+    "duration": 8,
+    "switch": 6
+  }
+}
