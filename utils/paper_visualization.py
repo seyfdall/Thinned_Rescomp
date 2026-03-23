@@ -14,7 +14,7 @@ def configure_paper_style():
         "font.family": "serif",
         'font.sans-serif': ['Computer Modern Roman'],
         'font.serif': ['Computer Modern Roman'],
-        'font.size': 16,
+        'font.size': 30, # TODO: Increase font size to match other plots in paper
     })
 
 
@@ -36,7 +36,7 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_
     ranks = np.empty(len(order), dtype=float)
     ranks[order] = np.linspace(0, 1, len(initial_vals))
 
-    fig, axes = plt.subplots(2, 1, figsize=(18, 10))
+    fig, axes = plt.subplots(2, 1, figsize=(18, 7))
 
     # --- Reservoir traces ---
     ax1 = axes[0]
@@ -71,7 +71,7 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_
     ax1.spines['bottom'].set_position(('data', 0))
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
-    ax1.set_title(r"Reservoir Response: $\bm{r}(t), \bm{\hat r}(t) \in \mathbb{R}^n$", y=-0.08)
+    ax1.set_title(r"Reservoir Response: $\bm{r}(t), \bm{\hat r}(t) \in \mathbb{R}^n$", y=-0.2)
 
     # --- Signal prediction ---
     ax2 = axes[1]
@@ -100,7 +100,7 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_
     ax2.annotate(
         r"$\bm{\hat u}(T)$",
         xy=(T, ax2.get_ylim()[1]),
-        xytext=(0, 0),
+        xytext=(-20.0, 0),
         textcoords="offset points",
         ha='center',
         va='bottom',
@@ -111,7 +111,7 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_
     ax2.annotate(
         r"$\bm{\hat u}(T^*)$",
         xy=(vpt_x, ax2.get_ylim()[1]),
-        xytext=(0, 0),
+        xytext=(20.0, 0),
         textcoords="offset points",
         ha='center',
         va='bottom',
@@ -124,10 +124,11 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_
     ax2.spines['right'].set_visible(False)
     ax2.set_title(
         r"Predicted Signal: $\bm{\hat u}(t) = \bm{W}_{\text{out}} \bm{\hat r} (t) \in \mathbb{R}^n$",
-        y=-0.08,
+        y=-0.2,
     )
 
-    plt.legend()
+    fig.subplots_adjust(hspace=0.5)
+    plt.legend(loc="center right", fontsize=20)
     _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
 
 
@@ -135,7 +136,7 @@ def plot_replica_pair(replica_states_1, replica_states_2, t_train, n, save_path=
     """Two-panel coloured trace plot of each replica's state trajectories."""
     cmap = plt.get_cmap('plasma')
 
-    fig, axes = plt.subplots(2, 1, figsize=(18, 10))
+    fig, axes = plt.subplots(2, 1, figsize=(18, 7))
 
     for ax, states, label in [
         (axes[0], replica_states_1, r"$\bm{r}(0)$"),
@@ -166,8 +167,9 @@ def plot_replica_pair(replica_states_1, replica_states_2, t_train, n, save_path=
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
 
-    axes[0].set_title(r"Replica Test 1", y=-0.08)
-    axes[1].set_title(r"Replica Test 2", y=-0.08)
+    axes[0].set_title(r"Replica Test 1", y=-0.1)
+    axes[1].set_title(r"Replica Test 2", y=-0.25)
+    fig.subplots_adjust(hspace=0.25)
     _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
 
 
@@ -178,7 +180,7 @@ def plot_replica_convergence(replica_states_1, replica_states_2, t_train, n, tai
         for i in range(n)
     ])
 
-    fig, ax = plt.subplots(figsize=(18, 6))
+    fig, ax = plt.subplots(figsize=(18, 5))
     subset = np.random.choice(n, 15, replace=False)
 
     for i in subset:
@@ -205,19 +207,19 @@ def plot_replica_convergence(replica_states_1, replica_states_2, t_train, n, tai
     ax.spines['right'].set_visible(False)
 
     legend_elements = [
-        Line2D([0], [0], color="green",  label="Replica 1 (converged)"),
-        Line2D([0], [0], color="blue",   label="Replica 2 (converged)"),
-        Line2D([0], [0], color="red",    label="Replica 1 (diverged)"),
-        Line2D([0], [0], color="orange", label="Replica 2 (diverged)"),
+        Line2D([0], [0], color="green",  linestyle="-", label="Replica 1 (converged)"),
+        Line2D([0], [0], color="blue",   linestyle="--", label="Replica 2 (converged)"),
+        Line2D([0], [0], color="red",    linestyle="-", label="Replica 1 (diverged)"),
+        Line2D([0], [0], color="orange", linestyle="--", label="Replica 2 (diverged)"),
     ]
-    ax.legend(handles=legend_elements)
-    ax.set_title(r"Replica Test", y=-0.08)
+    ax.legend(handles=legend_elements, loc="center right", fontsize=20)
+    ax.set_title(r"Replica Test", y=-0.1)
     _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
 
 
 def plot_reservoir_heatmap(reservoir_states, u_true, u_hat, T, t, save_path=None, save_dpi=600):
     """Heatmap of z-scored reservoir states (top) with plain signal comparison (bottom)."""
-    fig, ax = plt.subplots(figsize=(18, 4))
+    fig, ax = plt.subplots(figsize=(18, 5))
 
     Rnorm = (reservoir_states - reservoir_states.mean(axis=0)) / reservoir_states.std(axis=0)
     im = ax.imshow(Rnorm.T, aspect="auto", origin="lower")
@@ -239,5 +241,5 @@ def plot_lorenz_attractor(U_test, U_hat_pred, save_path=None, save_dpi=600):
     ax.plot(*U_test.T, color="blue", label="True")
     ax.plot(*U_hat_pred.T, color="orange", label="RC")
     ax.set_title("Lorenz Attractor Prediction")
-    plt.legend()
+    plt.legend(fontsize=20)
     _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
