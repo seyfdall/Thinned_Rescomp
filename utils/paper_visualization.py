@@ -27,6 +27,381 @@ def _save_and_show(fig, save_path=None, save_dpi=600):
     plt.show()
 
 
+def plot_reservoir_processing(reservoir_states, u_true, u_hat, T, t, n, save_path=None, save_dpi=600):
+    cmap = plt.get_cmap('plasma')
+
+    initial_vals = reservoir_states[0]
+    order = np.argsort(initial_vals)
+    ranks = np.empty(len(order), dtype=float)
+    ranks[order] = np.linspace(0, 1, len(initial_vals))
+
+    fig, axes = plt.subplots(1, 2, figsize=(18, 7))
+
+    # --- Signal ---
+    ax1 = axes[0]
+
+    for i, u in enumerate(u_true.T):
+        ax1.plot(t[:T], u[:T], color="blue", label="True" if i == 0 else None, alpha=0.7)
+
+    signal_bottom, signal_top = ax1.get_ylim()
+
+    ax1.vlines(x=0, ymin=signal_bottom, ymax=signal_top, color="blue", linestyles="--")
+    ax1.scatter(np.zeros(3), u_hat[0], c="blue", s=15)
+    ax1.annotate(
+        r"$\bm{u}(0)$",
+        xy=(0, ax1.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax1.vlines(x=T, ymin=signal_bottom, ymax=signal_top, color="blue", linestyles="--")
+    ax1.scatter(np.ones(3) * T, u_hat[T], c="blue", s=15)
+    ax1.annotate(
+        r"$\bm{u}(T)$",
+        xy=(T, ax1.get_ylim()[1]),
+        xytext=(-5.0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax1.set_yticks([0])
+    ax1.tick_params(axis='both', labelsize=12)
+    ax1.set_xticks([])
+    ax1.spines['bottom'].set_position(('data', 0))
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.set_title(
+        r"$\bm{u}(t) \in \mathbb{R}^m$",
+        y=-0.1,
+    )
+
+
+    # --- Reservoir traces ---
+    ax2 = axes[1]
+
+    for r, c in zip(reservoir_states.T, ranks):
+        ax2.plot(t[:T], r[:T], color=cmap(c), alpha=0.6)
+
+    ax2.vlines(x=0, ymin=-1, ymax=1, color="black", linestyles="--")
+    ax2.scatter(np.zeros(n), reservoir_states[0], c="black", s=15)
+    ax2.annotate(
+        r"$\bm{r}(0) = \bm{r}_0$",
+        xy=(0, ax2.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax2.vlines(x=T, ymin=-1, ymax=1, color="black", linestyles="--")
+    ax2.scatter(np.ones(n) * T, reservoir_states[T], c="black", s=15)
+    ax2.annotate(
+        r"$\bm{r}(T)$",
+        xy=(T, ax2.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax2.set_yticks([-1, 0, 1])
+    ax2.tick_params(axis='both', labelsize=12)
+    ax2.set_xticks([])
+    ax2.spines['bottom'].set_position(('data', 0))
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.set_title(r"$\bm{r}(t) \in \mathbb{R}^n$", y=-0.1)
+
+    plt.tight_layout()
+
+    fig.subplots_adjust(wspace=0.4)
+
+    bbox0 = ax1.get_position()
+    bbox1 = ax2.get_position()
+
+    x0 = bbox0.x1
+    x1 = bbox1.x0
+    y  = 0.4 * (bbox0.y0 + bbox0.y1)
+
+    x_mid = 0.5 * (x0 + x1)
+    half_width = 0.05   # controls arrow length
+
+    plt.annotate(
+        "",
+        xy=(x_mid + half_width, y),
+        xytext=(x_mid - 1.75*half_width, y),
+        xycoords="figure fraction",
+        textcoords="figure fraction",
+        arrowprops=dict(arrowstyle="->", linewidth=2.5),
+    )
+
+    # Text (placed above arrow)
+    plt.text(
+        0.5 * (x0 + x1),   # midpoint
+        y + 0.08,          # slightly above
+        r"$\mathbf{A} \in \mathbb{R}^{n \times n}$",
+        ha="center",
+        va="bottom",
+        transform=plt.gcf().transFigure,
+    )
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
+
+
+def plot_reservoir_aggregation(reservoir_states, u_true, u_hat, T, t, n, save_path=None, save_dpi=600):
+    cmap = plt.get_cmap('plasma')
+
+    initial_vals = reservoir_states[0]
+    order = np.argsort(initial_vals)
+    ranks = np.empty(len(order), dtype=float)
+    ranks[order] = np.linspace(0, 1, len(initial_vals))
+
+    fig, axes = plt.subplots(1, 2, figsize=(18, 7))
+
+    # --- Reservoir traces ---
+    ax1 = axes[0]
+
+    for r, c in zip(reservoir_states.T, ranks):
+        ax1.plot(t[:T], r[:T], color=cmap(c), alpha=0.6)
+
+    ax1.vlines(x=0, ymin=-1, ymax=1, color="black", linestyles="--")
+    ax1.scatter(np.zeros(n), reservoir_states[0], c="black", s=15)
+    ax1.annotate(
+        r"$\bm{r}(0)$",
+        xy=(0, ax1.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax1.vlines(x=T, ymin=-1, ymax=1, color="black", linestyles="--")
+    ax1.scatter(np.ones(n) * T, reservoir_states[T], c="black", s=15)
+    ax1.annotate(
+        r"$\bm{r}(T)$",
+        xy=(T, ax1.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax1.set_yticks([-1, 0, 1])
+    ax1.tick_params(axis='both', labelsize=12)
+    ax1.set_xticks([])
+    ax1.spines['bottom'].set_position(('data', 0))
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.set_title(r"$\bm{r}(t) \in \mathbb{R}^n$", y=-0.1)
+
+    # --- Signal prediction ---
+    ax2 = axes[1]
+
+    for i, u in enumerate(u_hat.T):
+        ax2.plot(t[:T], u[:T], color="orange", label="Predicted" if i == 0 else None, alpha=0.7)
+
+    signal_bottom, signal_top = ax2.get_ylim()
+
+    ax2.vlines(x=0, ymin=signal_bottom, ymax=signal_top, color="orange", linestyles="--")
+    ax2.scatter(np.zeros(3), u_hat[0], c="orange", s=15)
+    ax2.annotate(
+        r"$\bm{\hat u}(0)$",
+        xy=(0, ax2.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax2.vlines(x=T, ymin=signal_bottom, ymax=signal_top, color="orange", linestyles="--")
+    ax2.scatter(np.ones(3) * T, u_hat[T], c="orange", s=15)
+    ax2.annotate(
+        r"$\bm{\hat u}(T)$",
+        xy=(T, ax2.get_ylim()[1]),
+        xytext=(-5.0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax2.set_yticks([0])
+    ax2.tick_params(axis='both', labelsize=12)
+    ax2.set_xticks([])
+    ax2.spines['bottom'].set_position(('data', 0))
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.set_title(
+        r"$\bm{\hat u}(t) = \bm{W}_{\text{out}}\bm{r}(t) \in \mathbb{R}^m$",
+        y=-0.1,
+    )
+
+    plt.tight_layout()
+
+    fig.subplots_adjust(wspace=0.4)
+
+    bbox0 = ax1.get_position()
+    bbox1 = ax2.get_position()
+
+    x0 = bbox0.x1
+    x1 = bbox1.x0
+    y  = 0.4 * (bbox0.y0 + bbox0.y1)
+
+    x_mid = 0.5 * (x0 + x1)
+    half_width = 0.05   # controls arrow length
+
+    plt.annotate(
+        "",
+        xy=(x_mid + half_width, y),
+        xytext=(x_mid - 1.75*half_width, y),
+        xycoords="figure fraction",
+        textcoords="figure fraction",
+        arrowprops=dict(arrowstyle="->", linewidth=2.5),
+    )
+
+    # Text (placed above arrow)
+    plt.text(
+        0.5 * (x0 + x1),   # midpoint
+        y + 0.08,          # slightly above
+        r"$\mathbf{W}_{\mathrm{out}} \in \mathbb{R}^{m \times n}$",
+        ha="center",
+        va="bottom",
+        transform=plt.gcf().transFigure,
+    )
+
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
+
+
+def plot_reservoir_prediction(reservoir_states, u_true, u_hat, T, t, n, save_path=None, save_dpi=600):
+    cmap = plt.get_cmap('plasma')
+
+    initial_vals = reservoir_states[0]
+    order = np.argsort(initial_vals)
+    ranks = np.empty(len(order), dtype=float)
+    ranks[order] = np.linspace(0, 1, len(initial_vals))
+
+    fig, axes = plt.subplots(1, 2, figsize=(18, 7))
+
+    # --- Reservoir traces ---
+    ax1 = axes[0]
+
+    for r, c in zip(reservoir_states.T, ranks):
+        ax1.plot(t[T:] - t[T], r[T:], color=cmap(c), alpha=0.6)
+
+    ax1.vlines(x=0, ymin=-1, ymax=1, color="black", linestyles="--")
+    ax1.scatter(np.zeros(n), reservoir_states[T], c="black", s=15)
+    ax1.annotate(
+        r"$\bm{r}(T) = \bm{\hat r}(T)$",
+        xy=(0, ax1.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax1.set_yticks([-1, 0, 1])
+    ax1.tick_params(axis='both', labelsize=12)
+    ax1.set_xticks([])
+    ax1.spines['bottom'].set_position(('data', 0))
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.set_title(r"$\bm{r}(t) \in \mathbb{R}^n$", y=-0.1)
+
+    # --- Signal prediction ---
+    ax2 = axes[1]
+
+    for i, u in enumerate(u_hat.T):
+        ax2.plot(t[T:] - t[T], u[T:], color="orange", label="Predicted" if i == 0 else None, alpha=0.7)
+
+    signal_bottom, signal_top = ax2.get_ylim()
+
+    ax2.vlines(x=0, ymin=signal_bottom, ymax=signal_top, color="orange", linestyles="--")
+    ax2.scatter(np.zeros(3), u_hat[T], c="orange", s=15)
+    ax2.annotate(
+        r"$\bm{\hat u}(T)$",
+        xy=(0, ax2.get_ylim()[1]),
+        xytext=(0, 0),
+        textcoords="offset points",
+        ha='center',
+        va='bottom',
+    )
+
+    ax2.set_yticks([0])
+    ax2.tick_params(axis='both', labelsize=12)
+    ax2.set_xticks([])
+    ax2.spines['bottom'].set_position(('data', 0))
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.set_title(
+        r"$\bm{\hat u}(t) \in \mathbb{R}^m$",
+        y=-0.1,
+    )
+
+    plt.tight_layout()
+
+    fig.subplots_adjust(wspace=0.4)
+
+    bbox0 = ax1.get_position()
+    bbox1 = ax2.get_position()
+
+    x0 = bbox0.x1
+    x1 = bbox1.x0
+    y  = 0.4 * (bbox0.y0 + bbox0.y1)
+    half_height = 0.5 * (bbox0.y0 + bbox0.y1) / 2.0
+
+    x_mid = 0.5 * (x0 + x1)
+    half_width = 0.05   # controls arrow length
+
+    plt.annotate(
+        "",
+        xy=(x_mid + half_width, y - half_height),
+        xytext=(x_mid - 1.75*half_width, y - half_height),
+        xycoords="figure fraction",
+        textcoords="figure fraction",
+        arrowprops=dict(
+            arrowstyle="<-", 
+            linewidth=2.5,
+            connectionstyle="arc3,rad=0.2"
+        ),
+    )
+
+    # Text (placed above arrow)
+    plt.text(
+        0.5 * (x0 + x1),   # midpoint
+        y + 0.08 - half_height,          # slightly above
+        r"$\mathbf{A} \in \mathbb{R}^{m \times n}$",
+        ha="center",
+        va="bottom",
+        transform=plt.gcf().transFigure,
+    )
+
+    plt.annotate(
+        "",
+        xy=(x_mid + half_width, y + half_height),
+        xytext=(x_mid - 1.75*half_width, y + half_height),
+        xycoords="figure fraction",
+        textcoords="figure fraction",
+        arrowprops=dict(
+            arrowstyle="->", 
+            linewidth=2.5,
+            connectionstyle="arc3,rad=-0.2"
+        ),
+    )
+
+    # Text (placed below arrow)
+    plt.text(
+        0.5 * (x0 + x1),   # midpoint
+        y - 0.05 + half_height,          # slightly above
+        r"$\mathbf{W}_{\mathrm{out}} \in \mathbb{R}^{n \times n}$",
+        ha="center",
+        va="bottom",
+        transform=plt.gcf().transFigure,
+    )
+
+    _save_and_show(fig, save_path=save_path, save_dpi=save_dpi)
+
+
 def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_path=None, save_dpi=600):
     """Two-panel figure: coloured reservoir node traces (top) and signal prediction (bottom)."""
     cmap = plt.get_cmap('plasma')
@@ -67,6 +442,7 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_
     )
 
     ax1.set_yticks([-1, 0, 1])
+    ax1.tick_params(axis='both', labelsize=12)
     ax1.set_xticks([])
     ax1.spines['bottom'].set_position(('data', 0))
     ax1.spines['top'].set_visible(False)
@@ -118,12 +494,13 @@ def plot_reservoir_response(reservoir_states, u_true, u_hat, T, t, vpt, n, save_
     )
 
     ax2.set_yticks([0])
+    ax2.tick_params(axis='both', labelsize=12)
     ax2.set_xticks([])
     ax2.spines['bottom'].set_position(('data', 0))
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
     ax2.set_title(
-        r"Predicted Signal: $\bm{\hat u}(t) = \bm{W}_{\text{out}} \bm{\hat r} (t) \in \mathbb{R}^n$",
+        r"Predicted Signal: $\bm{\hat u}(t) = \bm{W}_{\text{out}} \bm{\hat r} (t) \in \mathbb{R}^m$",
         y=-0.2,
     )
 
