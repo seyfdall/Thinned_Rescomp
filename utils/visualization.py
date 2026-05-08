@@ -124,13 +124,11 @@ def create_individual_correlation_line_plots(mean_values, save_path, rhos, p_thi
         if key == "mean_vpt":
             continue
 
-        fig, (ax2) = plt.subplots(1, 1, figsize=(6, 5))
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-        # --- P_thin plot ---
-        ax2.plot(
-            p_thin_indices,
-            [col_cors[i].loc[key, "mean_vpt"] for i in range(len(p_thins))],
-        )
+        # --- P_thin/Rho plot plot ---
+        ax1.plot(rho_indices, [row_cors[i].loc[key, 'mean_vpt'] for i in range(len(rhos))], label=f"{key}")
+        ax2.plot(p_thin_indices, [col_cors[i].loc[key, 'mean_vpt'] for i in range(len(p_thins))], label=f"{key}")
 
         # c-lines
         idx = np.interp(p_thin_cs[0], p_thins, range(len(p_thins)))
@@ -138,14 +136,22 @@ def create_individual_correlation_line_plots(mean_values, save_path, rhos, p_thi
         idx = np.interp(p_thin_cs[1], p_thins, range(len(p_thins)))
         ax2.axvline(idx, linestyle="--", color="r", linewidth=1, label="c=1.5")
 
+        ax1.set_xticks(rho_indices)
+        ax1.set_xticklabels(rho_labels, rotation=45, ha='right')
         ax2.set_xticks(p_thin_indices)
         ax2.set_xticklabels(pthin_labels, rotation=45, ha="right")
+        
 
         # Reduce tick clutter
         for i, label in enumerate(ax2.get_xticklabels()):
             if i % 10 != 0:
                 label.set_visible(False)
 
+
+        ax1.set_title("Rho Correlation with VPT")
+        ax1.set_xlabel("Rho")
+        ax1.set_ylabel(f"{method} correlation")
+        ax1.legend()
         ax2.set_title(f"P_thin Correlation with VPT ({key})")
         ax2.set_xlabel("P_thin")
         ax2.legend()
@@ -383,34 +389,27 @@ if __name__ == "__main__":
     c_plot_values = [1, 1.5]
     p_thin_cs = [1-c/original_c for c in c_plot_values]
 
-    # create_individual_correlation_line_plots(
-    #     mean_values_dict,
-    #     save_path,
-    #     rhos,
-    #     p_thins,
-    #     p_thin_cs=p_thin_cs
-    # )
-
-    # create_individual_plots(
-    #     tuple(mean_values_dict.values()),
-    #     [3, 10, 10, 10, 10, 10], 
-    #     wanted_attributes, 
-    #     False, 
-    #     rho_p_thin_set,
-    #     param_name,
-    #     param,
-    #     param_set,
-    #     rhos, 
-    #     p_thins
-    # )
-
-    mean_correlation_plots(
+    create_individual_correlation_line_plots(
         mean_values_dict,
         save_path,
         rhos,
         p_thins,
         p_thin_cs=p_thin_cs
     )
+
+    create_individual_plots(
+        tuple(mean_values_dict.values()),
+        [3, 10, 10, 10, 10, 10], 
+        wanted_attributes, 
+        False, 
+        rho_p_thin_set,
+        param_name,
+        param,
+        param_set,
+        rhos, 
+        p_thins
+    )
+
 
     # Delete unnecessary files:
     # remove_system_data(results_path)
