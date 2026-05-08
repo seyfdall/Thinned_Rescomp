@@ -112,6 +112,15 @@ def remove_edges(A,n_edges):
         B[e] = 0
     return B
 
+<<<<<<< HEAD
 def get_network(A):
     G = nx.from_scipy_sparse_array(A, create_using=nx.DiGraph)
     return G
+=======
+
+def graph_from_rescomp(rescomp):
+    A = rescomp.res
+    G = nx.from_scipy_sparse_array(A, create_using=nx.DiGraph)
+    return G
+
+>>>>>>> 00600d8dc3c12529f44657eec022d0f608f90f3a

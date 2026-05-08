@@ -141,6 +141,7 @@ class GroupIOHandler:
         """ Retrieves a specific dataset from in-memory storage. """
         return self.datasets.get(name)
     
+<<<<<<< HEAD
 
 #to add a new dataset template you must change this function's declaration
 def create_rescomp_datasets_template(
@@ -163,6 +164,36 @@ def create_rescomp_datasets_template(
     assert set(kwargs.keys()) == set(attributes), f"Keyword arguments and attributes must match. Attributes - {attributes}, Keywords - {list(kwargs.keys())}"
     template = {attribute: kwargs[attribute] for attribute in attributes}
     return template
+=======
+## TODO update the file handler and the driver to capture my metrics and store them in the experiments file
+def create_rescomp_datasets_template(
+        div_der = [], 
+        div_pos = [], 
+        div_spect = [],
+        div_rank = [],
+        vpt = [],
+        pred = [],
+        err = [],
+        consistency_correlation = [],
+        gc_size = [],
+        fraction_driving = []
+
+    ):
+    """ Template to create attributes/datasets object for hdf5 file groups """
+
+    return {
+        "div_der": div_der, 
+        "div_pos": div_pos,
+        "div_spect": div_spect,
+        "div_rank": div_rank,
+        "vpt": vpt,
+        "pred": pred,
+        "err": err,
+        "consistency_correlation": consistency_correlation,
+        "gc_size": gc_size,
+        "fraction_driving": fraction_driving
+    }
+>>>>>>> 00600d8dc3c12529f44657eec022d0f608f90f3a
 
 
 def generate_rescomp_means(datasets):

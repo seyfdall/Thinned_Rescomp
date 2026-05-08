@@ -19,10 +19,11 @@ import ResComp
 """
 Import Helper functions
 """
-from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson
+from metrics import vpt_time, div_metric_tests, consistency_analysis_pearson, gc_size, fraction_driving
 from file_io import HDF5FileHandler, create_rescomp_datasets_template, generate_rescomp_means
 from helper import get_orbit
 from structure import drive_structural_analysis
+from helper import graph_from_rescomp
 
 
 # Global flag to stop gracefully
@@ -95,6 +96,11 @@ def drive_reservoir_analysis(
     vpt = vpt_time(t_test, U_test, U_pred, vpt_tol=tol)
     divs = div_metric_tests(res_thinned.states)
 
+    #Structural Metric Gathering
+    G = graph_from_rescomp(rescomp=res_thinned)
+    max_gc_size = gc_size(G)
+    driving = fraction_driving(G)
+
     print("Divs:", divs)
 
     datasets['div_pos'].append(divs[0])
@@ -105,6 +111,8 @@ def drive_reservoir_analysis(
     datasets['err'].append(error)
     datasets['vpt'].append(vpt)
     datasets['consistency_correlation'].append(cap)
+    datasets['gc_size'].append(max_gc_size)
+    datasets['fraction_driving'].append(driving)
 
     mean_attrs = generate_rescomp_means(datasets)
 

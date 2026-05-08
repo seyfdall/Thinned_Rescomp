@@ -2,8 +2,13 @@
 #SBATCH --job-name=reservoir_compute
 #SBATCH --output=logs/job_%A_%a.out
 #SBATCH --error=logs/job_%A_%a.err
+<<<<<<< HEAD
 #SBATCH --time=24:00:00
 #SBATCH --mem=4G
+=======
+#SBATCH --time=06:00:00
+#SBATCH --mem=2G
+>>>>>>> 00600d8dc3c12529f44657eec022d0f608f90f3a
 #SBATCH --mail-user=fmurray@byu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --cpus-per-task=1
