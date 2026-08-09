@@ -326,8 +326,8 @@ def create_plots_helper(
         p_thins,
         c
     ):
-    save_path = f'{os.getcwd()}/results/{network_type}/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    plot_path = Path(__file__).resolve().parents[1] / "paper_plots" / "plots" / network_type / param_name / param / param_set / rho_p_thin_set
+    plot_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Metric keys: {list(comp_metrics.keys())}")
 
@@ -341,11 +341,11 @@ def create_plots_helper(
     print(f"diameter argmax", diam_p_thin_argmax)
     p_thin_cs = [p_thins[diam_p_thin_argmax]]
 
-    create_metric_mean_plots(focus_metrics, param_name, param, param_set, p_thins, rhos, save_path, rho_p_thin_set)
-    create_correlation_plots(focus_metrics, save_path, rhos, p_thins)
-    create_correlation_line_plots(focus_metrics, save_path, rhos, p_thins, p_thin_cs, c)
-    create_diameter_p_thin_plots(diameter_metrics, c, save_path, p_thins)
-    create_column_linear_plots(focus_metrics, save_path, rhos, p_thins, focus_keys)
+    create_metric_mean_plots(focus_metrics, param_name, param, param_set, p_thins, rhos, plot_path, rho_p_thin_set)
+    create_correlation_plots(focus_metrics, f"{plot_path}/", rhos, p_thins)
+    create_correlation_line_plots(focus_metrics, f"{plot_path}/", rhos, p_thins, p_thin_cs, c)
+    create_diameter_p_thin_plots(diameter_metrics, c, f"{plot_path}/", p_thins)
+    create_column_linear_plots(focus_metrics, f"{plot_path}/", rhos, p_thins, focus_keys)
 
 
 if __name__ == "__main__":
@@ -354,8 +354,8 @@ if __name__ == "__main__":
     """
     network_type, rho_p_thin_set, param, param_name, param_set = parse_arguments()
 
-    home = os.path.expanduser("~")
-    results_path = f'{home}/nobackup/autodelete/results/{network_type}/{param_name}/{param}/{param_set}/{rho_p_thin_set}/'
+    paper_root = Path(__file__).resolve().parents[1] / "paper_plots"
+    results_path = paper_root / "data" / network_type / param_name / param / param_set / rho_p_thin_set
 
     rhos_p_thin_dict = {}
     with open(f'./utils/rho_p_thin_sets/{rho_p_thin_set}.json') as f:
@@ -368,7 +368,7 @@ if __name__ == "__main__":
         param_dict = json.load(f)
     c = param_dict['erdos_renyi_c'][0]
 
-    comp_metrics = get_average_system_metrics(p_thins, rhos, results_path)
+    comp_metrics = get_average_system_metrics(p_thins, rhos, f"{results_path}/")
     create_plots_helper(
         comp_metrics, 
         network_type,

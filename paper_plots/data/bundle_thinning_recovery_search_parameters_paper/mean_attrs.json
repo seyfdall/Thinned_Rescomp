@@ -1,0 +1,13 @@
+{
+  "mean_giant_diam": 14.0,
+  "mean_average_diam": 0.8571428571428571,
+  "mean_giant_size": 76.0,
+  "mean_div_pos": 0.4243431643071213,
+  "mean_div_der": 0.005716920329000119,
+  "mean_div_spect": 0.02409273720542897,
+  "mean_div_rank": 0.026931292893111802,
+  "mean_pred": 1.4297913628288537,
+  "mean_err": 36.95808337340356,
+  "mean_vpt": 1.6600000000000001,
+  "mean_consistency_correlation": NaN
+}
