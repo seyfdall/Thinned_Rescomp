@@ -1,5 +1,7 @@
 import numpy as np
 import os
+import json
+from pathlib import Path
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 # Set seed for reproducibility
@@ -267,3 +269,161 @@ def remove_system_data(results_path):
     """
     for file_path in glob(f'{results_path}*.h5'):
         os.remove(file_path)
+
+
+def _to_numpy_array(value):
+    """Convert sparse-like objects to arrays for storage when needed."""
+    if hasattr(value, "toarray"):
+        return value.toarray()
+    return value
+
+
+def save_exemplar_bundle(
+    bundle_dir,
+    artifacts,
+    mean_attrs=None,
+    datasets=None,
+    include_datasets=False,
+):
+    """Save notebook-focused run outputs into a directory of .npy and JSON files."""
+    bundle_path = Path(bundle_dir)
+    bundle_path.mkdir(parents=True, exist_ok=True)
+
+    for key, value in artifacts.items():
+        np.save(bundle_path / f"{key}.npy", _to_numpy_array(value))
+
+    if mean_attrs is not None:
+        with open(bundle_path / "mean_attrs.json", "w", encoding="utf-8") as f:
+            json.dump(mean_attrs, f, indent=2)
+
+    if include_datasets and datasets is not None:
+        for key, value in datasets.items():
+            np.save(bundle_path / f"dataset_{key}.npy", np.array(value, dtype=object), allow_pickle=True)
+
+
+def load_exemplar_bundle(bundle_dir, load_datasets=False):
+    """Load a bundle saved by save_exemplar_bundle."""
+    bundle_path = Path(bundle_dir)
+
+    result = {
+        "artifacts": {},
+        "mean_attrs": {},
+        "datasets": {},
+    }
+
+    for npy_file in bundle_path.glob("*.npy"):
+        stem = npy_file.stem
+        if stem.startswith("dataset_"):
+            if load_datasets:
+                key = stem.replace("dataset_", "", 1)
+                result["datasets"][key] = np.load(npy_file, allow_pickle=True).tolist()
+            continue
+        result["artifacts"][stem] = np.load(npy_file, allow_pickle=True)
+
+    mean_attrs_path = bundle_path / "mean_attrs.json"
+    if mean_attrs_path.is_file():
+        with open(mean_attrs_path, "r", encoding="utf-8") as f:
+            result["mean_attrs"] = json.load(f)
+
+    return result
+
+
+def get_bundle_dir(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch):
+    """Return the Path for a bundle directory given reservoir parameters."""
+    return Path(
+        f"data/bundle_n_{n}_n_type_{network_type}_rho_{rho}_mean_degree_{mean_degree}_"
+        f"alpha_{alpha}_gamma_{gamma}_sigma_{sigma}_tol_{tol}_duration_{duration}_switch_{switch}/"
+    )
+
+
+def get_named_bundle_dir(parameter_set_name):
+    """Return the Path for a bundle directory keyed by parameter set name."""
+    return Path(f"data/bundle_{parameter_set_name}/")
+
+
+def load_parameters(param_set_name, parameters_file=None):
+    """
+    Load a parameter set from a JSON configuration file.
+    
+    Parameters:
+        param_set_name (str): Name of the parameter set to load (e.g., 'good_parameters', 'bad_parameters').
+        parameters_file (str, optional): Path to the parameters JSON file. If None, looks for 
+                                         'parameters.json' in the current directory and parent directories.
+    
+    Returns:
+        dict: A dictionary containing the parameters. Includes a 'description' key.
+        
+    Raises:
+        FileNotFoundError: If the parameters file cannot be found.
+        KeyError: If the param_set_name does not exist in the file.
+    """
+    if parameters_file is None:
+        # Search for parameters.json in current and parent directories
+        search_paths = [
+            Path("parameters.json"),
+            Path(__file__).parent.parent / "parameters.json",
+            Path.cwd() / "parameters.json",
+        ]
+        
+        for path in search_paths:
+            if path.is_file():
+                parameters_file = path
+                break
+        
+        if parameters_file is None:
+            raise FileNotFoundError(
+                "Could not find parameters.json. Searched in current directory and script's parent directory."
+            )
+    
+    parameters_file = Path(parameters_file)
+    
+    with open(parameters_file, "r", encoding="utf-8") as f:
+        all_params = json.load(f)
+    
+    if param_set_name not in all_params:
+        available = list(all_params.keys())
+        raise KeyError(f"Parameter set '{param_set_name}' not found. Available sets: {available}")
+    
+    return all_params[param_set_name]
+
+
+def _load_bundle_data_from_dir(bundle_dir):
+    """Load a saved exemplar bundle from a directory and unpack all artifacts into named arrays."""
+    bundle = load_exemplar_bundle(bundle_dir)
+    artifacts = bundle["artifacts"]
+
+    A = artifacts["A"]
+    r0 = artifacts["r0"]
+    t_train = artifacts["t_train"]
+    U_train = artifacts["U_train"]
+    t_test = artifacts["t_test"]
+    U_test = artifacts["U_test"]
+    U_hat_pred = artifacts["U_pred"]
+    states_train = artifacts["states_train"]
+    states_pred = artifacts["states_pred"]
+    replica_states_1 = artifacts["replica_states_1"]
+    replica_states_2 = artifacts["replica_states_2"]
+    W_out = artifacts["W_out"]
+
+    U_hat_train = (W_out @ states_train.T).T
+    vpt = np.array([float(np.asarray(artifacts["vpt"]))])
+
+    return (
+        A, r0, t_train, U_train, t_test, U_test,
+        U_hat_train, U_hat_pred,
+        states_train, states_pred,
+        replica_states_1, replica_states_2,
+        W_out, vpt,
+    )
+
+
+def load_bundle_data_by_name(parameter_set_name):
+    """Load a saved exemplar bundle using bundle_{parameter_set_name} naming."""
+    bundle_dir = get_named_bundle_dir(parameter_set_name)
+    return _load_bundle_data_from_dir(bundle_dir)
+
+
+def load_bundle_data(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch):
+    """Load a saved exemplar bundle and unpack all artifacts into named arrays."""
+    bundle_dir = get_bundle_dir(n, network_type, rho, mean_degree, alpha, gamma, sigma, tol, duration, switch)
+    return _load_bundle_data_from_dir(bundle_dir)
