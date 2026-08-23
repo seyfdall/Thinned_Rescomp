@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = [20, 5]
 import matplotlib
+import matplotlib.colors as mcolors
 from file_io import get_average_system_metrics
 from helper import parse_arguments
 from pathlib import Path
@@ -15,6 +16,17 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def create_system_plot(values, ax, title, p_thins, rhos, label_step=4):
+    # if title == "mean_div_spect":
+        # def contrast_stretch(x, k=10):
+        #     # k controls steepness; higher k = more separation
+        #     sig = lambda v: 10 / (1 + np.exp(-k * (v - 0.5)))
+        #     lo, hi = sig(0), sig(1)
+        #     return (sig(x) - lo) / (hi - lo)
+        # k = np.exp(1./values)
+        # values = contrast_stretch(1./np.log(k))
+        # z = (values - values.mean()) / values.std()
+        # values = 1 / (1 + np.exp(-z))  # back into (0,1), now more separated
+
     values = np.asarray(values)
     p_thins = np.asarray(p_thins)
     rhos = np.asarray(rhos)
@@ -23,6 +35,8 @@ def create_system_plot(values, ax, title, p_thins, rhos, label_step=4):
         raise ValueError("values must have shape (len(rhos), len(p_thins))")
 
     norm = matplotlib.colors.Normalize(vmin=0, vmax=np.nanmax(values))
+    if title == "mean_div_spect":
+        norm = mcolors.PowerNorm(gamma=1.5, vmin=0, vmax=np.nanmax(values))
 
     x = np.arange(len(p_thins))
     y = np.arange(len(rhos))
